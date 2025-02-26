@@ -3,12 +3,12 @@ import Event from '../model/event.model.js';
 
 
 
-const asyncHandler =(fn)=>{
+export const asyncHandler =(fn)=>{
     return  (req,res,next) =>{
            Promise.resolve(fn(req,res,next)).catch((err)=>next(err))
        }
    
-   }
+}
 
 const adminSecretKey = '1234567890';
 export const createAdmin = asyncHandler(async (req, res) => {

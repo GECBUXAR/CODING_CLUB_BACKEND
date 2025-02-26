@@ -1,9 +1,13 @@
 import mongoose from "mongoose";
+import dotenv from 'dotenv';
 
+dotenv.config({
+    path: './.env'
+  });
 
 const connectDB = async()=>{
     try {
-        const connectstring = `mongodb+srv://coding:codingClub321@cluster0.24ddk.mongodb.net/coding_club`;
+        const connectstring = process.env.MONGODB_URI;
         const connectionInstance = await mongoose.connect(connectstring)                
         console.log("MongoDB connect");
     }catch(err){

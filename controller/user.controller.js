@@ -1,5 +1,6 @@
 import User from '../model/user.model.js'; 
-export const createUser = async (req, res) => {
+import { asyncHandler } from './admin.controller.js';
+export const createUser = asyncHandler(async (req, res) => {
     try {
         const {name, email, mobile, registrationNumber, branch, semester} = req.body
         const user = req.user
@@ -14,9 +15,9 @@ export const createUser = async (req, res) => {
     } catch (error) {
         res.status(400).send(error);
     }
-};
+});
 
-export const loginUser = async (req, res) => {
+export const loginUser = asyncHandler(async (req, res) => {
     try {
         const { registrationNumber , password } = req.body;
         const user = await User.findOne({ registrationNumber }); 
@@ -30,18 +31,18 @@ export const loginUser = async (req, res) => {
     } catch (error) {
         res.status(500).json({ message: 'Internal server error.' });
     }
-};
+});
 
-export const getAllUsers = async (req, res) => {
+export const getAllUsers = asyncHandler(async (req, res) => {
     try {
         const users = await User.find();
         res.status(200).send(users);
     } catch (error) {
         res.status(500).send(error);
     }
-};
+});
 
-export const getUserById = async (req, res) => {
+export const getUserById = asyncHandler(async (req, res) => {
     try {
         const user = await User.findById(req.params.id);
         if (!user) {
@@ -51,10 +52,10 @@ export const getUserById = async (req, res) => {
     } catch (error) {
         res.status(500).send(error);
     }
-};
+});
 
 
-export const updateUser = async (req, res) => {
+export const updateUser = asyncHandler(async (req, res) => {
     try {
         const user = await User.findByIdAndUpdate(req.params.id, req.body);
         if (!user) {
@@ -64,9 +65,9 @@ export const updateUser = async (req, res) => {
     } catch (error) {
         res.status(400).send(error);
     }
-};
+});
 
-export const deleteUser = async (req, res) => {
+export const deleteUser = asyncHandler(async (req, res) => {
     try {
         const user = await User.findByIdAndDelete(req.params.id);
         if (!user) {
@@ -76,4 +77,5 @@ export const deleteUser = async (req, res) => {
     } catch (error) {
         res.status(500).send(error);
     }
-};
+});
+
