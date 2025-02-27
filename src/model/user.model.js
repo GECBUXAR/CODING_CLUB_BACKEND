@@ -37,6 +37,10 @@ const userSchema = new mongoose.Schema({
         min: 1,
         max: 8
     },
+    isSuscribed: {
+        type: Boolean,
+        default: false
+    },
     
 });
 

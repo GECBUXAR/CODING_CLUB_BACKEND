@@ -1,5 +1,7 @@
 import Admin from '../model/admin.model.js';
 import Event from '../model/event.model.js';
+import nodemailer from 'nodemailer';
+import User from '../model/user.model.js';
 
 
 
@@ -46,11 +48,33 @@ export const createEvent = asyncHandler(async (req, res) => {
     const { title, description, date, location } = req.body;    
     const event = new Event({ title, description, date, location });
     await event.save();
-    res.status(201).json(event);
-}catch(error){
-    res.status(500).json({ message: 'Internal server error.' });
+    res.status(201).json(event);}
+    catch(error){
+        res.status(500).json(error);
+    }
+    try {
+        const subscribedUsers = await User.find({ isSubscribed: true });
+        const emails = subscribedUsers.map(user => user.email).join(',');
+    
+        // Email notification logic
+        const mailOptions = {
+          from: 'your-email@gmail.com',
+          to: emails, // Send to all subscribed users
+          subject: 'New Event Added',
+          text: `A new event has been added: ${JSON.stringify(eventDetails)}`,
+        };
+    
+        transporter.sendMail(mailOptions, (error, info) => {
+          if (error) {
+            return res.status(500).send('Error sending email');
+          }
+          res.status(200).send('Event created and email sent to subscribers.');
+        });
+      } catch (error) {
+        res.status(500).send('Error retrieving subscribed users.');
+      }
 }
-});
+);
 
   
 
