@@ -3,7 +3,7 @@ import { getAllUsers, getUserById, createUser, updateUser, deleteUser, loginUser
 
 const UserRouter = express.Router();
 
-UserRouter.get('/', getAllUsers);
+UserRouter.get('/AllUsers', getAllUsers);
 UserRouter.get('/:id', getUserById);
 UserRouter.post('/signup', createUser);
 UserRouter.post('/login', loginUser);
