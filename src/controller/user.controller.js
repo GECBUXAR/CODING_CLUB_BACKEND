@@ -24,7 +24,7 @@ export const createUser = asyncHandler(async (req, res) => {
 
     res.status(200).json(newUser);
   } catch (error) {
-    console.log(error);
+    // console.log(error);
 
     res.status(400).send(error);
   }
@@ -32,12 +32,14 @@ export const createUser = asyncHandler(async (req, res) => {
 
 export const loginUser = asyncHandler(async (req, res) => {
   try {
-    const { registrationNumber, password } = req.body;
-    const user = await User.findOne({ registrationNumber });
+    const { email, password } = req.body;
+    console.log(req.body);
+    
+    const user = await User.findOne({ email });
     if (!user) {
       return res
         .status(401)
-        .json({ message: "Invalid registration number " });
+        .json({ message: "Invalid email Id " });
     }
     if (user.password !== password) {
       return res
