@@ -12,6 +12,19 @@ export const createUser = asyncHandler(async (req, res) => {
       password,
     } = req.body;
 
+
+    if (!name || !email || !mobile || !registrationNumber || !branch || !semester || !password) {
+    res.status(400);
+    throw new Error("Please fill in all required fields.");
+  }
+
+    const existingUser = await User.findOne({ $or: [{ email }, { registrationNumber }] });
+  if (existingUser) {
+    res.status(409);
+    throw new Error("User already exists with this email or registration number.");
+  }
+
+
     const newUser = await User.create({
       name,
       email,
@@ -22,7 +35,11 @@ export const createUser = asyncHandler(async (req, res) => {
       password,
     });
 
-    res.status(200).json(newUser);
+    // Remove password from response
+  const userToSend = { ...newUser.toObject() };
+  delete userToSend.password;
+
+    res.status(200).json(userToSend);
   } catch (error) {
     // console.log(error);
 
