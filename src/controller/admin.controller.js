@@ -2,21 +2,12 @@ import Admin from '../model/admin.model.js';
 import Event from '../model/event.model.js';
 import nodemailer from 'nodemailer';
 import User from '../model/user.model.js';
+import { asyncHandler } from '../utils/asyncHandler.js';
 
-
-
-export const asyncHandler =(fn)=>{
-    return  (req,res,next) =>{
-           Promise.resolve(fn(req,res,next)).catch((err)=>next(err))
-       }
-   
-}
-
-const adminSecretKey = '1234567890';
 export const createAdmin = asyncHandler(async (req, res) => {
     try {
     const { name, email, secretKey } = req.body;
-    if (secretKey !== adminSecretKey) {
+    if (secretKey !== process.env.ADMINSECRETKEY) {
         return res.status(403).json({ message: 'Invalid secret key.' });
     }
     const admin = new Admin({ name, email, role: 'admin' });
@@ -30,7 +21,7 @@ export const createAdmin = asyncHandler(async (req, res) => {
 export const loginAdmin = asyncHandler(async (req, res) => {
     try {
     const { email, secretKey } = req.body;
-            if (secretKey !== adminSecretKey) {
+            if (secretKey !== process.env.ADMINSECRETKEY) {
         return res.status(403).json({ message: 'Invalid secret key.' });
     }
     const admin = await Admin.findOne({ email });

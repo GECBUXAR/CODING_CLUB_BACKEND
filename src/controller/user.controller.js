@@ -1,5 +1,6 @@
 import User from "../model/user.model.js";
-import { asyncHandler } from "./admin.controller.js";
+import { asyncHandler } from "../utils/asyncHandler.js";
+import bcrypt from "bcryptjs";
 export const createUser = asyncHandler(async (req, res) => {
   try {
     const {
@@ -11,7 +12,15 @@ export const createUser = asyncHandler(async (req, res) => {
       semester,
       password,
     } = req.body;
-
+    const existedUserGmail = await User.findOne({ email });
+    if (existedUserGmail) {
+      return res.status(409).json({ message: "User already exists with this email." });
+    }
+    const existedUserRegistrationNumber = await User.findOne({ registrationNumber });
+    if (existedUserRegistrationNumber) {
+      return res.status(409).json({ message: "User already exists with this registration number." });
+    }
+    const hashedPassword = await bcrypt.hash(password, 10);
     const newUser = await User.create({
       name,
       email,
@@ -19,13 +28,11 @@ export const createUser = asyncHandler(async (req, res) => {
       registrationNumber,
       branch,
       semester,
-      password,
+      password: hashedPassword,
     });
-
-    res.status(200).json(newUser);
+    const newCreatedUser = await User.findById(newUser._id).select("-password");
+    res.status(200).json(newCreatedUser);
   } catch (error) {
-    // console.log(error);
-
     res.status(400).send(error);
   }
 });
@@ -33,20 +40,24 @@ export const createUser = asyncHandler(async (req, res) => {
 export const loginUser = asyncHandler(async (req, res) => {
   try {
     const { email, password } = req.body;
-    console.log(req.body);
-    
+
     const user = await User.findOne({ email });
     if (!user) {
       return res
         .status(401)
-        .json({ message: "Invalid email Id " });
+        .json({ message: "User does not exist with this email Id " });
     }
-    if (user.password !== password) {
+    
+    const matchPassword = await bcrypt.compare(password,user.password);
+    if (!matchPassword) {
       return res
         .status(401)
         .json({ message: "Invalid  password" });
     }
-    res.status(200).json(user);
+    const loggedInUser = await User.findById(user._id).select(
+      "-password"
+    );
+    res.status(200).json(loggedInUser);
   } catch (error) {
     res.status(500).json({ message: "Internal server error." });
   }

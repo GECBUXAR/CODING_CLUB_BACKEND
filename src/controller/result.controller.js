@@ -1,6 +1,6 @@
 import Result from '../model/result.model.js';
 import User from '../model/user.model.js';
-import { asyncHandler } from './admin.controller.js';
+import { asyncHandler } from '../utils/asyncHandler.js';
 
 // Middleware to check if user is admin
 const isAdmin = asyncHandler(async (req, res, next) => {
