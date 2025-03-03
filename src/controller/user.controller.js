@@ -1,5 +1,8 @@
 import User from "../model/user.model.js";
-import { asyncHandler } from "./admin.controller.js";
+import  asyncHandler  from "../utils/asyncHandler.js";
+import bcrypt from "bcryptjs";
+import {generateAccessToken} from "../utils/generateToken.js";
+import {generateRefreshToken} from "../utils/generateToken.js";
 export const createUser = asyncHandler(async (req, res) => {
   try {
     const {
@@ -24,6 +27,7 @@ export const createUser = asyncHandler(async (req, res) => {
     throw new Error("User already exists with this email or registration number.");
   }
 
+    const hashedPassword = await bcrypt.hash(password, 10);
 
     const newUser = await User.create({
       name,
@@ -32,17 +36,16 @@ export const createUser = asyncHandler(async (req, res) => {
       registrationNumber,
       branch,
       semester,
-      password,
+      password: hashedPassword,
     });
 
-    // Remove password from response
-  const userToSend = { ...newUser.toObject() };
-  delete userToSend.password;
+
+    const userToSend = newUser.toObject();
+    delete userToSend.password;
 
     res.status(200).json(userToSend);
   } catch (error) {
     // console.log(error);
-
     res.status(400).send(error);
   }
 });
@@ -58,20 +61,40 @@ export const loginUser = asyncHandler(async (req, res) => {
         .status(401)
         .json({ message: "Invalid email Id " });
     }
-    if (user.password !== password) {
+
+    const isPasswordValid = await bcrypt.compare(password, user.password);
+    if (!isPasswordValid) {
       return res
         .status(401)
         .json({ message: "Invalid  password" });
     }
-    res.status(200).json(user);
+
+    const accessToken = generateAccessToken(user);
+    const refreshToken = generateRefreshToken(user);
+    user.refreshToken = refreshToken;
+    await user.save();
+    const options = {
+      httpOnly: true,
+      secure: true,
+    };
+
+    const userToSend = user.toObject();
+    delete userToSend.password;
+    delete userToSend.refreshToken;
+
+    res.status(200)
+      .cookie("accessToken", accessToken, options)
+      .json({User:userToSend,accessToken});
   } catch (error) {
     res.status(500).json({ message: "Internal server error." });
+    console.log(error);
+    
   }
 });
 
 export const getAllUsers = asyncHandler(async (req, res) => {
   try {
-    const users = await User.find();
+    const users = await User.find().select('-password');
     res.status(200).send(users);
   } catch (error) {
     res.status(500).send(error);
@@ -80,7 +103,7 @@ export const getAllUsers = asyncHandler(async (req, res) => {
 
 export const getUserById = asyncHandler(async (req, res) => {
   try {
-    const user = await User.findById(req.params.id);
+    const user = await User.findById(req.params.id).select('-password');
     if (!user) {
       return res.status(404).send();
     }
