@@ -3,8 +3,8 @@ import { createEvent, getEvents, getEventById, updateEvent, deleteEvent } from '
 
 const EventRouter = express.Router();
 
-EventRouter.post('/events', createEvent);
-EventRouter.get('/events', getEvents);
+EventRouter.post('/createEvent', createEvent);
+EventRouter.get('/getAllevents', getEvents);
 EventRouter.get('/events/:id', getEventById);    
 EventRouter.put('/events/:id', updateEvent);
 EventRouter.delete('/events/:id', deleteEvent);
