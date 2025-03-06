@@ -9,4 +9,4 @@ EventRouter.get('/events/:id', getEventById);
 EventRouter.put('/events/:id', updateEvent);
 EventRouter.delete('/events/:id', deleteEvent);
 
-    export default EventRouter;
+export default EventRouter;
