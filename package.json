@@ -7,7 +7,8 @@
   "type": "module",
   "main": "src/index.js",
   "scripts": {
-    "dev": "nodemon -r dotenv/config  src/index.js"
+    "dev": "nodemon -r dotenv/config  src/index.js",
+    "start": "node -r dotenv/config src/index.js"
   },
   "dependencies": {
     "bcryptjs": "^3.0.2",
@@ -19,7 +20,10 @@
     "mongoose": "^8.10.1",
     "mongoose-aggregate-paginate-v2": "^1.1.4",
     "nodemailer": "^6.10.0",
-    "nodemon": "^3.1.9",
+    
     "ws": "^8.18.1"
+  },
+    "devDependencies": {
+    "nodemon": "^3.1.9"  
   }
 }
