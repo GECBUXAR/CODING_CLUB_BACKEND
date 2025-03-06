@@ -89,7 +89,7 @@ export const loginAdmin = asyncHandler(async (req, res) => {
     admin._id
   );
 
-  const loggedInUser = await User.findById(admin._id).select(
+  const loggedInAdmin = await Admin.findById(admin._id).select(
     "-password -refreshToken"
   );
 
@@ -108,10 +108,35 @@ export const loginAdmin = asyncHandler(async (req, res) => {
     .json(
       new ApiRespons(
         200,
-        { user: loggedInUser, accessToken, refreshToken },
-        "User logged In Successfully"
+        { user: loggedInAdmin, accessToken, refreshToken },
+        "Admin logged In Successfully"
       )
     );
+});
+
+export const logOutAdmin = asyncHandler(async (req, res) => {
+  await Admin.findByIdAndUpdate(
+    req.admin._id,
+    {
+      $set: {
+        refreshToken: undefined,
+      },
+    },
+    {
+      new: true,
+    }
+  );
+
+  const options = {
+    httpOnly: true,
+    secure: true,
+  };
+
+  return res
+    .status(200)
+    .clearCookie("accessToken", options)
+    .clearCookie("refreshToken", options)
+    .json(new ApiRespons(200, {}, "User logged out Successfully"));
 });
 
 export const createEvent = asyncHandler(async (req, res) => {
