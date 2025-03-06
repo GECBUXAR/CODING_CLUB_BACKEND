@@ -1,8 +1,12 @@
 import mongoose from "mongoose";
 
 const resultSchema = new mongoose.Schema({
+    totalScore: {
+        type: String,
+        required: true
+    },
     score: {
-        type: Number,
+        type: String,
         required: true
     },
     userId: {
@@ -10,7 +14,7 @@ const resultSchema = new mongoose.Schema({
         ref: 'User',
         required: true
     },
-    eventId: {
+    eventTitle: {
         type: mongoose.Schema.Types.ObjectId,
         ref: 'Event',
         required: true

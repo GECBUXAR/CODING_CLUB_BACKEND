@@ -30,6 +30,10 @@ const eventSchema = new mongoose.Schema({
     type: Array,
     required: true,
   },
+  results: [{
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Result'
+  }]
 });
 const Event = mongoose.model("Event", eventSchema);
 export default Event;
