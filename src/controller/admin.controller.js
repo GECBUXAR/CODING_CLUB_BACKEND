@@ -1,90 +1,117 @@
-import Admin from "../model/admin.model.js";
+import { Admin } from "../model/admin.model.js";
 import Event from "../model/event.model.js";
 import nodemailer from "nodemailer";
-import User from "../model/user.model.js";
+import { User } from "../model/user.model.js";
 import asyncHandler from "../utils/asyncHandler.js";
-import bcrypt from 'bcryptjs';
-import {generateAccessToken} from "../utils/generateToken.js";
-import {generateRefreshToken} from "../utils/generateToken.js";
-export const createAdmin = asyncHandler(async (req, res) => {
+import ApiRespons from "../utils/ApiRespons.js";
+import ApiError from "../utils/ApiError.js";
+import bcrypt from "bcryptjs";
+import { generateAccessToken } from "../utils/generateToken.js";
+import { generateRefreshToken } from "../utils/generateToken.js";
+
+const generateAccessRefreshToken = async (userID) => {
   try {
-    const { name, email, password, secretKey } = req.body;
+    const user = await User.findById(userID);
+    const accessToken = await user.generateAccessToken();
+    const refreshToken = await user.generateRefreshToken();
 
-    if (!name || !email || !password || !secretKey) {
-      return res.status(400).json({ message: "All fields are required." });
-    }
+    user.refreshToken = refreshToken;
+    await user.save({ validateBeforeSave: false });
 
-    if (secretKey !== process.env.ADMINSECRETKEY) {
-      return res.status(403).json({ message: "Invalid secret key." });
-    }
-
-    const existingAdmin = await Admin.findOne({ email });
-    if (existingAdmin) {
-      return res
-        .status(400)
-        .json({ message: "Admin with this email already exists." });
-    }
-
-    const hashedPassword = await bcrypt.hash(password, 10);
-
-    const admin = new Admin({
-      name,
-      email,
-      password: hashedPassword,
-      role: "admin"
-    });
-    await admin.save();
-    const adminToSend = admin.toObject();
-    delete adminToSend.password;
-    res.status(201).json(adminToSend);
+    return { accessToken, refreshToken };
   } catch (error) {
-    res
-      .status(500)
-      .json({ message: "Internal server error.", error: error.message });
+    throw new ApiError(
+      500,
+      "Something went wrong while genreting RefreshToken and AccessToken "
+    );
   }
+};
+
+export const createAdmin = asyncHandler(async (req, res) => {
+  const { name, email, password, secretKey } = req.body;
+
+  if (!name || !email || !password || !secretKey) {
+    throw new ApiError(400, "Please fill in all required fields.");
+  }
+
+  if (secretKey !== process.env.ADMINSECRETKEY) {
+    throw new ApiError(400, "Invalid secret key.");
+  }
+
+  const existingAdmin = await Admin.findOne({ email });
+  if (existingAdmin) {
+    throw new ApiError(409, "User already exists with this email");
+  }
+
+  const newAdmin = await Admin.create({
+    name,
+    email,
+    password,
+    role: "admin",
+  });
+
+  const createdAdmin = await Admin.findById(newAdmin._id).select(
+    " -password -refreshToken "
+  );
+
+  if (!createdAdmin) {
+    throw new ApiError(500, "something went wrong while SignUp the admin");
+  }
+
+  return res
+    .status(200)
+    .json(new ApiRespons(200, createdAdmin, "Admin registerd Successfully"));
 });
 
 export const loginAdmin = asyncHandler(async (req, res) => {
-  try {
-    const { email, password, secretKey } = req.body;
+  const { email, password, secretKey } = req.body;
 
-    if (!email || !password || !secretKey) {
-      return res.status(400).json({ message: "All fields are required." });
-    }
-
-    if (secretKey !== process.env.ADMINSECRETKEY) {
-      return res.status(403).json({ message: "Invalid secret key." });
-    }
-
-    const admin = await Admin.findOne({ email });
-    if (!admin) {
-      return res.status(404).json({ message: "Admin not found." });
-    }
-    const isPasswordValid = await bcrypt.compare(password, admin.password);
-    if (!isPasswordValid) {
-      return res
-        .status(401)
-        .json({ message: "Invalid  password" });
-    }
-    const accessToken = generateAccessToken(admin);
-    const refreshToken = generateRefreshToken(admin);
-    admin.refreshToken = refreshToken;
-    await admin.save();
-    const options = {
-        httpOnly: true,
-        secure: true,
-      };
-      const adminToSend = admin.toObject();
-    delete adminToSend.password;
-    delete adminToSend.refreshToken;
-    res
-      .status(200)
-      .cookie("accessToken", accessToken, options)
-      .json({Useradmin:adminToSend,accessToken});
-  } catch (error) {
-    console.log(error);
-    res.status(500).json({ message: "Internal server error." },error);
+  if (!email || !password || !secretKey) {
+    return res.status(400).json({ message: "All fields are required." });
   }
+
+  if (secretKey !== process.env.ADMINSECRETKEY) {
+    return res.status(403).json({ message: "Invalid secret key." });
+  }
+
+  const admin = await Admin.findOne({ email });
+  if (!admin) {
+    return res.status(404).json({ message: "Admin not found." });
+  }
+
+  const isPasswordValid = await bcrypt.compare(password, admin.password);
+
+  if (!isPasswordValid) {
+    throw new ApiError(401, "Invalid Password");
+  }
+
+  const { accessToken, refreshToken } = await generateAccessRefreshToken(
+    admin._id
+  );
+
+  const loggedInUser = await User.findById(admin._id).select(
+    "-password -refreshToken"
+  );
+
+  const options = {
+    httpOnly: true,
+    secure: true,
+  };
+  // const adminToSend = admin.toObject();
+  // delete adminToSend.password;
+  // delete adminToSend.refreshToken;
+
+  return res
+    .status(200)
+    .cookie("accessToken", accessToken, options)
+    .cookie("refreshToken", refreshToken, options)
+    .json(
+      new ApiRespons(
+        200,
+        { user: loggedInUser, accessToken, refreshToken },
+        "User logged In Successfully"
+      )
+    );
 });
 
 export const createEvent = asyncHandler(async (req, res) => {

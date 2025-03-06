@@ -1,100 +1,172 @@
-import User from "../model/user.model.js";
-import  asyncHandler  from "../utils/asyncHandler.js";
+import { User } from "../model/user.model.js";
+import asyncHandler from "../utils/asyncHandler.js";
+import ApiRespons from "../utils/ApiRespons.js";
+import ApiError from "../utils/ApiError.js";
 import bcrypt from "bcryptjs";
-import {generateAccessToken} from "../utils/generateToken.js";
-import {generateRefreshToken} from "../utils/generateToken.js";
-export const createUser = asyncHandler(async (req, res) => {
+import jwt from "jsonwebtoken";
+// import { generateAccessToken } from "../utils/generateToken.js";
+// import { generateRefreshToken } from "../utils/generateToken.js";
+
+const generateAccessRefreshToken = async (userID) => {
   try {
-    const {
-      name,
-      email,
-      mobile,
-      registrationNumber,
-      branch,
-      semester,
-      password,
-    } = req.body;
+    const user = await User.findById(userID);
+    const accessToken = await user.generateAccessToken();
+    const refreshToken = await user.generateRefreshToken();
 
+    user.refreshToken = refreshToken;
+    await user.save({ validateBeforeSave: false });
 
-    if (!name || !email || !mobile || !registrationNumber || !branch || !semester || !password) {
-    res.status(400);
-    throw new Error("Please fill in all required fields.");
-  }
-
-    const existingUser = await User.findOne({ $or: [{ email }, { registrationNumber }] });
-  if (existingUser) {
-    res.status(409);
-    throw new Error("User already exists with this email or registration number.");
-  }
-
-    const hashedPassword = await bcrypt.hash(password, 10);
-
-    const newUser = await User.create({
-      name,
-      email,
-      mobile,
-      registrationNumber,
-      branch,
-      semester,
-      password: hashedPassword,
-    });
-
-
-    const userToSend = newUser.toObject();
-    delete userToSend.password;
-
-    res.status(200).json(userToSend);
+    return { accessToken, refreshToken };
   } catch (error) {
-    // console.log(error);
-    res.status(400).send(error);
+    throw new ApiError(
+      500,
+      "Something went wrong while genreting RefreshToken and AccessToken "
+    );
   }
+};
+
+export const createUser = asyncHandler(async (req, res) => {
+  const {
+    name,
+    email,
+    mobile,
+    registrationNumber,
+    branch,
+    semester,
+    password,
+  } = req.body;
+
+  if (
+    !name ||
+    !email ||
+    !mobile ||
+    !registrationNumber ||
+    !branch ||
+    !semester ||
+    !password
+  ) {
+    throw new ApiError(400, "Please fill in all required fields.");
+  }
+
+  const existingUser = await User.findOne({
+    $or: [{ email }, { registrationNumber }],
+  });
+  if (existingUser) {
+    throw new ApiError(
+      409,
+      "User already exists with this email or registration number."
+    );
+  }
+
+  // const hashedPassword = await bcrypt.hash(password, 10);
+
+  const newUser = await User.create({
+    name,
+    email,
+    mobile,
+    registrationNumber,
+    branch,
+    semester,
+    password,
+  });
+
+  // const userToSend = newUser.toObject();
+
+  const createdUser = await User.findById(newUser._id).select(
+    " -password -refreshToken "
+  );
+
+  if (!createdUser) {
+    throw new ApiError(500, "something went wrong while SignUp the user");
+  }
+
+  return res
+    .status(200)
+    .json(new ApiRespons(200, createdUser, "User registerd Successfully"));
+
+  // res.status(200).json(userToSend)
 });
 
 export const loginUser = asyncHandler(async (req, res) => {
-  try {
-    const { email, password } = req.body;
-    console.log(req.body);
-    
-    const user = await User.findOne({ email });
-    if (!user) {
-      return res
-        .status(401)
-        .json({ message: "Invalid email Id " });
-    }
+  const { email, password } = req.body;
+  console.log(req.body);
 
-    const isPasswordValid = await bcrypt.compare(password, user.password);
-    if (!isPasswordValid) {
-      return res
-        .status(401)
-        .json({ message: "Invalid  password" });
-    }
-
-    const accessToken = generateAccessToken(user);
-    const refreshToken = generateRefreshToken(user);
-    user.refreshToken = refreshToken;
-    await user.save();
-    const options = {
-      httpOnly: true,
-      secure: true,
-    };
-
-    const userToSend = user.toObject();
-    delete userToSend.password;
-    delete userToSend.refreshToken;
-
-    res.status(200)
-      .cookie("accessToken", accessToken, options)
-      .json({User:userToSend,accessToken});
-  } catch (error) {
-    res.status(500).json({ message: "Internal server error." });
-    console.log(error);
-    
+  const user = await User.findOne({ email });
+  if (!user) {
+    // return res.status(401).json({ message: "Invalid email Id " });
+    throw new ApiError(404, "User not Found");
   }
+
+  // const isPasswordValid = await bcrypt.compare(password, user.password);
+  const isPasswordValid = await user.comparePassword(password);
+
+  if (!isPasswordValid) {
+    throw new ApiError(401, "Invalid Password");
+  }
+
+  const { accessToken, refreshToken } = await generateAccessRefreshToken(
+    user._id
+  );
+
+  const loggedInUser = await User.findById(user._id).select(
+    "-password -refreshToken"
+  );
+
+  // const accessToken = generateAccessToken(user);
+  // const refreshToken = generateRefreshToken(user);
+  // user.refreshToken = refreshToken;
+  // await user.save();
+
+  const options = {
+    httpOnly: true,
+    secure: true,
+  };
+
+  // const userToSend = user.toObject();
+  // delete userToSend.password;
+  // delete userToSend.refreshToken;
+
+  return res
+    .status(200)
+    .cookie("accessToken", accessToken, options)
+    .cookie("refreshToken", refreshToken, options)
+    .json(
+      new ApiRespons(
+        200,
+        { user: loggedInUser, accessToken, refreshToken },
+        "User logged In Successfully"
+      )
+    );
+});
+
+export const logOutUser = asyncHandler(async (req, res) => {
+  await User.findByIdAndUpdate(
+    req.user._id,
+    {
+      $set: {
+        refreshToken: undefined,
+      },
+    },
+    {
+      new: true,
+    }
+  );
+
+  const options = {
+    httpOnly: true,
+    secure: true,
+  };
+
+  return res
+    .status(200)
+    .clearCookie("accessToken", options)
+    .clearCookie("refreshToken", options)
+    .json(new ApiRespons(200, {}, "User logged out Successfully"));
 });
 
 export const getAllUsers = asyncHandler(async (req, res) => {
   try {
-    const users = await User.find().select('-password');
+    const users = await User.find().select("-password");
     res.status(200).send(users);
   } catch (error) {
     res.status(500).send(error);
@@ -103,7 +175,7 @@ export const getAllUsers = asyncHandler(async (req, res) => {
 
 export const getUserById = asyncHandler(async (req, res) => {
   try {
-    const user = await User.findById(req.params.id).select('-password');
+    const user = await User.findById(req.params.id).select("-password");
     if (!user) {
       return res.status(404).send();
     }
