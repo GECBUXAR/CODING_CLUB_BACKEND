@@ -15,24 +15,28 @@ const eventSchema = new mongoose.Schema({
   },
   location: {
     type: String,
-    required: true,
   },
   category: {
     type: String,
-    required: true,
   },
   skillLevel: {
     type: String,
-    required: true,
     enum: ["beginner", "intermediate", "advanced"],
   },
   speakers: {
     type: Array,
-    required: true,
+  },
+  isExam: {
+    type: Boolean,
+    default: false,
   },
   results: [{
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Result'
+    }],
+  questions: [{
     type: mongoose.Schema.Types.ObjectId,
-    ref: 'Result'
+    ref: 'Question'
   }]
 });
 const Event = mongoose.model("Event", eventSchema);

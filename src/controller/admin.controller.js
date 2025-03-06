@@ -100,6 +100,7 @@ export const createEvent = asyncHandler(async (req, res) => {
       category,
       skillLevel,
       speakers,
+      isExam,
     } = req.body;
     const event = new Event({
       title,
@@ -109,6 +110,7 @@ export const createEvent = asyncHandler(async (req, res) => {
       category,
       skillLevel,
       speakers,
+      isExam,
     });
     await event.save();
     res.status(201).json(event);
@@ -144,10 +146,10 @@ export const updateEvent = asyncHandler(async (req, res) => {
       return res.status(403).json({ message: "Access denied. Admins only." });
     }
     const { id } = req.params;
-    const { title, description, date, location } = req.body;
+    const { title, description, date, location, isExam } = req.body;
     const event = await Event.findByIdAndUpdate(
       id,
-      { title, description, date, location },
+      { title, description, date, location, isExam },
       { new: true }
     );
     res.status(200).json(event);
