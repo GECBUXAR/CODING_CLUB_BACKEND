@@ -12,7 +12,6 @@ const questionSchema = new mongoose.Schema(
       required: true,
     },
     correctOption: { type: String, required: true },
-    answerText: { type: String },
     eventTitle: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Event",
