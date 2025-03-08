@@ -12,6 +12,7 @@
   },
   "dependencies": {
     "bcryptjs": "^3.0.2",
+    "cloudinary": "^2.5.1",
     "cookie-parser": "^1.4.7",
     "cors": "^2.8.5",
     "dotenv": "^16.4.7",
@@ -20,10 +21,9 @@
     "mongoose": "^8.10.1",
     "mongoose-aggregate-paginate-v2": "^1.1.4",
     "nodemailer": "^6.10.0",
-    
     "ws": "^8.18.1"
   },
-    "devDependencies": {
-    "nodemon": "^3.1.9"  
+  "devDependencies": {
+    "nodemon": "^3.1.9"
   }
 }
