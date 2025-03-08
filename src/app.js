@@ -61,6 +61,7 @@ import eventRoutes from "./routes/event.route.js";
 import userRoutes from "./routes/user.route.js";
 import resultRoutes from "./routes/result.route.js";
 import userAnswerRoutes from "./routes/userAnswer.route.js";
+import testimonialRoutes from "./routes/testimonial.route.js";
 
 // Routes Declaration
 app.use("/api/v1/admin", router);
@@ -68,6 +69,7 @@ app.use("/api/v1/events", eventRoutes);
 app.use("/api/v1/users", userRoutes);
 app.use("/api/v1/results", resultRoutes);
 app.use("/api/v1/user-answers", userAnswerRoutes);
+app.use("/api/v1/testimonials", testimonialRoutes);
 
 // Add a route handler for .well-known/version endpoint
 app.get("/.well-known/version", (req, res) => {
