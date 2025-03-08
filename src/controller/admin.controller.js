@@ -96,6 +96,9 @@ export const loginAdmin = asyncHandler(async (req, res) => {
   const options = {
     httpOnly: true,
     secure: true,
+    sameSite: "none",
+    partitioned: true,
+    path: "/",
   };
   // const adminToSend = admin.toObject();
   // delete adminToSend.password;
@@ -130,6 +133,9 @@ export const logOutAdmin = asyncHandler(async (req, res) => {
   const options = {
     httpOnly: true,
     secure: true,
+    sameSite: "none",
+    partitioned: true,
+    path: "/",
   };
 
   return res

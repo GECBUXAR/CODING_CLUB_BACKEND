@@ -14,8 +14,9 @@
         "headers": {
           "Access-Control-Allow-Origin": "https://coding-club-frontend.vercel.app",
           "Access-Control-Allow-Methods": "GET,POST,PUT,DELETE,OPTIONS,PATCH",
-          "Access-Control-Allow-Headers": "X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version, Authorization",
+          "Access-Control-Allow-Headers": "X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version, Authorization, Origin",
           "Access-Control-Allow-Credentials": "true",
+          "Access-Control-Expose-Headers": "Set-Cookie",
           "Access-Control-Max-Age": "86400"
         }
       }

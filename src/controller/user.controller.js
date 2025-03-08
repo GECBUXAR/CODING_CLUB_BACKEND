@@ -120,6 +120,10 @@ export const loginUser = asyncHandler(async (req, res) => {
   const options = {
     httpOnly: true,
     secure: true,
+    sameSite: "none",
+    partitioned: true,
+    path: "/",
+    maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
   };
 
   // const userToSend = user.toObject();
@@ -155,6 +159,9 @@ export const logOutUser = asyncHandler(async (req, res) => {
   const options = {
     httpOnly: true,
     secure: true,
+    sameSite: "none",
+    partitioned: true,
+    path: "/",
   };
 
   return res

@@ -33,10 +33,13 @@ const corsOptions = {
     "Authorization",
     "X-Requested-With",
     "Accept",
+    "Origin",
   ],
+  exposedHeaders: ["Set-Cookie"],
   credentials: true,
   optionsSuccessStatus: 200,
   preflightContinue: false,
+  maxAge: 86400, // 24 hours
 };
 
 // Apply CORS middleware
