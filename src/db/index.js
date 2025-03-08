@@ -13,8 +13,6 @@ const connectDB = async () => {
 
     const options = {
       dbName: DB_NAME,
-      useNewUrlParser: true,
-      useUnifiedTopology: true,
       retryWrites: true,
       w: "majority",
       retryReads: true,
