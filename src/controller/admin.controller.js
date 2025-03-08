@@ -1,7 +1,7 @@
 import { Admin } from "../model/admin.model.js";
 import Event from "../model/event.model.js";
 import nodemailer from "nodemailer";
-import { User } from "../model/user.model.js";
+import User from "../model/user.model.js";
 import asyncHandler from "../utils/asyncHandler.js";
 import ApiRespons from "../utils/ApiRespons.js";
 import ApiError from "../utils/ApiError.js";

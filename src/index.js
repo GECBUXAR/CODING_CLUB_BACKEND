@@ -3,6 +3,20 @@ import http from "http";
 import app from "./app.js";
 import connectDB from "./db/index.js";
 
+// Global error handler for uncaught exceptions
+process.on("uncaughtException", (error) => {
+  console.error("UNCAUGHT EXCEPTION 💥", error.name, error.message);
+  console.error("Stack:", error.stack);
+  process.exit(1);
+});
+
+// Global unhandled promise rejection handler
+process.on("unhandledRejection", (error) => {
+  console.error("UNHANDLED REJECTION 💥", error.name, error.message);
+  console.error("Stack:", error.stack);
+  process.exit(1);
+});
+
 dotenv.config({
   path: "./.env",
 });
@@ -26,7 +40,9 @@ connectDB()
     });
   })
   .catch((err) => {
-    console.log(`mongoDB Connection FAILED !!!!! `, err);
+    console.error("MongoDB connection failed:", err);
+    console.error("Stack:", err.stack);
+    process.exit(1);
   });
 
 // const port = 5000;
@@ -38,3 +54,6 @@ connectDB()
 // app.listen(port, () => {
 //   console.log(`Example app listening at http://localhost:${port}`);
 // });
+
+// Special handling for Vercel serverless environment
+export default app;
