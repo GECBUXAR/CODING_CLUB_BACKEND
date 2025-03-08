@@ -4,12 +4,42 @@ import cors from "cors";
 
 const app = express();
 
-// Fixed CORS configuration to properly handle credentials
+// Add this to your app.js file (before any route declarations)
+app.use((req, res, next) => {
+  console.log(`${req.method} ${req.url}`);
+  next();
+});
+
+// Modify your CORS setup in app.js
+app.use((req, res, next) => {
+  // Always set CORS headers, even for errors
+  res.header(
+    "Access-Control-Allow-Origin",
+    process.env.CORS_ORIGIN === "*"
+      ? "http://localhost:5173"
+      : process.env.CORS_ORIGIN
+  );
+  res.header("Access-Control-Allow-Methods", "GET,PUT,POST,DELETE,OPTIONS");
+  res.header(
+    "Access-Control-Allow-Headers",
+    "Content-Type, Authorization, X-Requested-With, Accept"
+  );
+  res.header("Access-Control-Allow-Credentials", "true");
+
+  // Handle OPTIONS requests explicitly
+  if (req.method === "OPTIONS") {
+    return res.status(200).end();
+  }
+
+  next();
+});
+
+// Then your regular CORS middleware
 app.use(
   cors({
     origin:
       process.env.CORS_ORIGIN === "*"
-        ? ["http://localhost:5173", "https://yourfrontend.com"] // Replace with your actual production frontend URL
+        ? ["http://localhost:5173"]
         : process.env.CORS_ORIGIN.split(","),
     methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allowedHeaders: [
@@ -24,7 +54,7 @@ app.use(
 );
 
 // Handle preflight requests properly
-app.options("*", cors());
+// app.options("*", cors());
 
 app.use(express.json());
 
