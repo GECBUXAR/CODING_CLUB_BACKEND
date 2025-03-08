@@ -1,5 +1,5 @@
 import dotenv from "dotenv";
-import http from "http";
+import http from "node:http";
 import app from "./app.js";
 import connectDB from "./db/index.js";
 
@@ -25,16 +25,18 @@ const server = http.createServer(app);
 
 connectDB()
   .then(() => {
-    app.on("Error", (Error) => {
-      console.log("ERR:", Error);
+    app.on("error", (err) => {
+      console.log("App Error:", err);
     });
 
     app.get("/", (req, res) => {
       res.send("hello bro");
     });
-    app.get("/api/connet", (req, res) => {
+
+    app.get("/api/connect", (req, res) => {
       res.send("hello Server is connected");
     });
+
     server.listen(process.env.PORT || 4000, () => {
       console.log(`Server is starting at PORT ${process.env.PORT || 4000}`);
     });

@@ -212,7 +212,7 @@ export const deleteUser = asyncHandler(async (req, res) => {
 export const subscribe = asyncHandler(async (req, res) => {
   const userEmail = req.body.email;
   try {
-    const User = await User.findOneAndUpdate(
+    const updatedUser = await User.findOneAndUpdate(
       { email: userEmail },
       { isSubscribed: true },
       { new: true, upsert: true }

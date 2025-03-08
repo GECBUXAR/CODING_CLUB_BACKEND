@@ -39,7 +39,7 @@ const userSchema = new Schema(
       min: 1,
       max: 8,
     },
-    isSuscribed: {
+    isSubscribed: {
       type: Boolean,
       default: false,
     },

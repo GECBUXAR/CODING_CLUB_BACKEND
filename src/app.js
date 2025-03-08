@@ -17,7 +17,7 @@ const allowedOrigins = [
 ];
 
 const corsOptions = {
-  origin: function (origin, callback) {
+  origin: (origin, callback) => {
     // Allow requests with no origin (like mobile apps, curl, etc.)
     if (!origin) return callback(null, true);
 
@@ -55,12 +55,14 @@ import router from "./routes/admin.route.js";
 import eventRoutes from "./routes/event.route.js";
 import userRoutes from "./routes/user.route.js";
 import resultRoutes from "./routes/result.route.js";
+import userAnswerRoutes from "./routes/userAnswer.route.js";
 
 // Routes Declaration
 app.use("/api/v1/admin", router);
 app.use("/api/v1/events", eventRoutes);
 app.use("/api/v1/users", userRoutes);
 app.use("/api/v1/results", resultRoutes);
+app.use("/api/v1/user-answers", userAnswerRoutes);
 
 // Add a route handler for .well-known/version endpoint
 app.get("/.well-known/version", (req, res) => {
