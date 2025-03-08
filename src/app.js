@@ -13,7 +13,9 @@ app.use((req, res, next) => {
 // CORS configuration
 const allowedOrigins = [
   "http://localhost:5173",
-  "https://coding-club-frontend.vercel.app",
+  "https://coding-club-frontend-three.vercel.app",
+  "https://coding-club-frontend-git-letest-gec-buxars-projects.vercel.app",
+  "https://coding-club-frontend-git-dev-gec-buxars-projects.vercel.app",
 ];
 
 const corsOptions = {
