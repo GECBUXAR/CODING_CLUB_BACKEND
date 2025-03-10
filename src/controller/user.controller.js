@@ -4,14 +4,16 @@ import ApiRespons from "../utils/ApiRespons.js";
 import ApiError from "../utils/ApiError.js";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
-// import { generateAccessToken } from "../utils/generateToken.js";
-// import { generateRefreshToken } from "../utils/generateToken.js";
+import { generateAccessToken } from "../utils/generateToken.js";
+import { generateRefreshToken } from "../utils/generateToken.js";
 
 const generateAccessRefreshToken = async (userID) => {
   try {
     const user = await User.findById(userID);
-    const accessToken = await user.generateAccessToken();
-    const refreshToken = await user.generateRefreshToken();
+    const accessToken = generateAccessToken(userID);
+    console.log(accessToken);
+    
+    const refreshToken = generateRefreshToken(userID);
 
     user.refreshToken = refreshToken;
     await user.save({ validateBeforeSave: false });
@@ -89,7 +91,7 @@ export const createUser = asyncHandler(async (req, res) => {
 
 export const loginUser = asyncHandler(async (req, res) => {
   const { email, password } = req.body;
-  console.log(req.body);
+  // console.log(req.body);
 
   const user = await User.findOne({ email });
   if (!user) {
@@ -191,6 +193,21 @@ export const getUserById = asyncHandler(async (req, res) => {
     res.status(500).send(error);
   }
 });
+
+export const getUserByToken = asyncHandler(async (req,res)=>{
+ try {
+   const {token} = req.body;
+   if(!token){
+     throw new ApiError(404,"token not found");
+   }   
+   const decode = jwt.verify(token,process.env.ACCESS_TOKEN_SECRET);
+   const user = await User.findById(decode.id).select("-password");
+   
+   return res.status(200).json(new ApiRespons(200,user))
+ } catch (error) {
+  throw new ApiError(401, error);
+ }
+})
 
 export const updateUser = asyncHandler(async (req, res) => {
   try {

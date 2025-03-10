@@ -8,6 +8,7 @@ import {
   loginUser,
   logOutUser,
   subscribe,
+  getUserByToken,
 } from "../controller/user.controller.js";
 
 const UserRouter = express.Router();
@@ -20,5 +21,6 @@ UserRouter.post("/logout", logOutUser);
 UserRouter.put("/:id", updateUser);
 UserRouter.delete("/:id", deleteUser);
 UserRouter.post("/subscribe", subscribe);
+UserRouter.post("/me",getUserByToken);
 
 export default UserRouter;
