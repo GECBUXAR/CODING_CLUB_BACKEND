@@ -1,7 +1,7 @@
 import Testimonial from "../model/testimonial.model.js";
 import asyncHandler from "../utils/asyncHandler.js";
 import User from "../model/user.model.js";
-
+import {uploadOnCloudinary} from "../utils/cloudinary.js"
 // Middleware to check if user is admin
 const isAdmin = asyncHandler(async (req, res, next) => {
   const user = await User.findById(req.user.id);
@@ -12,28 +12,10 @@ const isAdmin = asyncHandler(async (req, res, next) => {
   }
 });
 
-// Get all active testimonials (public endpoint)
-export const getAllTestimonials = asyncHandler(async (req, res) => {
-  try {
-    const testimonials = await Testimonial.find({ isActive: true }).sort({
-      createdAt: -1,
-    });
 
-    return res.status(200).json({
-      status: "success",
-      count: testimonials.length,
-      data: testimonials,
-    });
-  } catch (error) {
-    return res.status(500).json({
-      status: "error",
-      message: error.message,
-    });
-  }
-});
 
 // Get all testimonials (admin only)
-export const getAllTestimonialsAdmin = [
+export const getAllTestimonials = [
   isAdmin,
   asyncHandler(async (req, res) => {
     try {
@@ -58,21 +40,24 @@ export const createTestimonial = [
   isAdmin,
   asyncHandler(async (req, res) => {
     try {
-      const { name, role, content, rating, image } = req.body;
+      const { name, role, content } = req.body;
 
-      if (!name || !role || !content) {
+      if (!name || !role || !content ) {
         return res.status(400).json({
           status: "error",
           message: "Name, role, and content are required fields",
         });
+      }
+      let imageUrl = null;
+      if(req.files?.image?.[0]){
+        imageUrl = await uploadOnCloudinary(req.files.image[0].buffer);
       }
 
       const testimonial = await Testimonial.create({
         name,
         role,
         content,
-        rating: rating || 5,
-        image: image || "",
+        image: imageUrl || "",
         isActive: true,
       });
 

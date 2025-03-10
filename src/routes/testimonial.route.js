@@ -1,7 +1,6 @@
 import express from "express";
 import {
   getAllTestimonials,
-  getAllTestimonialsAdmin,
   createTestimonial,
   updateTestimonial,
   deleteTestimonial,
@@ -11,12 +10,11 @@ import { verifyJWT } from "../middlewares/auth.middleware.js";
 const router = express.Router();
 
 // Public routes
-router.get("/", getAllTestimonials);
+router.get("/getAllTestimonial", getAllTestimonials);
 
 // Protected routes (admin only)
-router.get("/admin", verifyJWT, getAllTestimonialsAdmin);
-router.post("/", verifyJWT, createTestimonial);
-router.put("/:id", verifyJWT, updateTestimonial);
-router.delete("/:id", verifyJWT, deleteTestimonial);
+router.post("/createTestimonial", verifyJWT, createTestimonial);
+router.put("/updateTestimonial/:id", verifyJWT, updateTestimonial);
+router.delete("/delTestimonial/:id", verifyJWT, deleteTestimonial);
 
 export default router;
