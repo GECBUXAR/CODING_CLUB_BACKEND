@@ -8,12 +8,18 @@ import jwt from "jsonwebtoken";
 const generateAccessRefreshToken = async (userID) => {
   try {
     const user = await User.findById(userID);
+<<<<<<< HEAD:src/controllers/user.controller.js
     if (!user) {
       throw new ApiError(404, "User not found");
     }
 
     const accessToken = await user.generateAccessToken();
     const refreshToken = await user.generateRefreshToken();
+=======
+    const accessToken = generateAccessToken(userID);
+    
+    const refreshToken = generateRefreshToken(userID);
+>>>>>>> 66e2afac091ba58ade411718f28233c14ccf18d6:src/controller/user.controller.js
 
     user.refreshToken = refreshToken;
     await user.save({ validateBeforeSave: false });
@@ -37,7 +43,12 @@ export const createUser = asyncHandler(async (req, res) => {
     registrationNumber,
     branch,
     semester,
+<<<<<<< HEAD:src/controllers/user.controller.js
     role,
+=======
+    password,
+    isSubscribed
+>>>>>>> 66e2afac091ba58ade411718f28233c14ccf18d6:src/controller/user.controller.js
   } = req.body;
 
   console.log("Registration data received:", req.body);
@@ -72,7 +83,11 @@ export const createUser = asyncHandler(async (req, res) => {
     branch,
     semester,
     password,
+<<<<<<< HEAD:src/controllers/user.controller.js
     role: role || "user",
+=======
+    isSubscribed
+>>>>>>> 66e2afac091ba58ade411718f28233c14ccf18d6:src/controller/user.controller.js
   });
 
   const createdUser = await User.findById(newUser._id).select(
@@ -240,11 +255,36 @@ export const getUserByToken = asyncHandler(async (req, res) => {
 
 export const updateUser = asyncHandler(async (req, res) => {
   try {
-    const user = await User.findByIdAndUpdate(req.params.id, req.body);
-    if (!user) {
-      return res.status(404).send();
+    const {id,name,email,mobile,registrationNumber,branch,semester,isSubscribed} = req.body;
+    
+    if (!id) {
+      return res.status(404).json(new ApiRespons(404,"User ID is required"));
     }
-    res.status(200).send(user);
+    const updatedField={};
+    if(name){
+      updatedField.name=name;
+    }
+    if(email)
+      updatedField.email=email;
+    if(mobile)
+      updatedField.mobile=mobile;
+    if(registrationNumber)
+      updatedField.registrationNumber=registrationNumber;
+    if(branch)
+      updatedField.branch=branch;
+    if(semester)
+      updatedField.semester=semester;
+    if(isSubscribed)
+      updatedField.isSubscribed=isSubscribed;
+    const updatedUser = await user.findByIdAndUpdate(
+      id,{
+        $set:updatedField
+      },
+      {
+        new:true,
+      }
+    ).select("-password");
+    res.status(200).json(updatedUser,"user updated successfully");
   } catch (error) {
     res.status(400).send(error);
   }
@@ -252,9 +292,10 @@ export const updateUser = asyncHandler(async (req, res) => {
 
 export const deleteUser = asyncHandler(async (req, res) => {
   try {
-    const user = await User.findByIdAndDelete(req.params.id);
+    const id = req.body;
+    const user = await User.findByIdAndDelete(id);
     if (!user) {
-      return res.status(404).send();
+      return res.status(404).json(404,"user not found");
     }
     res.status(200).send(user);
   } catch (error) {
@@ -276,3 +317,6 @@ export const subscribe = asyncHandler(async (req, res) => {
     res.status(500).send("Error subscribing user.");
   }
 });
+// export const changePassword = asyncHandler(async(req,res)=>{
+//   const {id,newpassword} = req.body;
+// })
