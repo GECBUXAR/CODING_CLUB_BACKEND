@@ -9,18 +9,26 @@ import {
   logOutUser,
   subscribe,
   getUserByToken,
-} from "../controller/user.controller.js";
+  getUserProfile,
+} from "../controllers/user.controller.js";
+import { verifyJWT } from "../middlewares/auth.middleware.js";
 
 const UserRouter = express.Router();
 
-UserRouter.get("/AllUsers", getAllUsers);
-UserRouter.get("/:id", getUserById);
+// Public routes
 UserRouter.post("/signup", createUser);
 UserRouter.post("/login", loginUser);
-UserRouter.post("/logout", logOutUser);
-UserRouter.put("/:id", updateUser);
-UserRouter.delete("/:id", deleteUser);
 UserRouter.post("/subscribe", subscribe);
-UserRouter.post("/me",getUserByToken);
+
+// Protected routes
+UserRouter.get("/profile", verifyJWT, getUserProfile);
+UserRouter.post("/logout", verifyJWT, logOutUser);
+UserRouter.get("/AllUsers", verifyJWT, getAllUsers);
+UserRouter.post("/me", verifyJWT, getUserByToken);
+
+// Routes with parameters - also protected
+UserRouter.get("/:id", verifyJWT, getUserById);
+UserRouter.put("/:id", verifyJWT, updateUser);
+UserRouter.delete("/:id", verifyJWT, deleteUser);
 
 export default UserRouter;

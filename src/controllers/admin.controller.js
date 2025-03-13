@@ -1,13 +1,11 @@
-import { Admin } from "../model/admin.model.js";
-import Event from "../model/event.model.js";
+import { Admin } from "../models/admin.model.js";
+import Event from "../models/event.model.js";
 import nodemailer from "nodemailer";
-import User from "../model/user.model.js";
+import User from "../models/user.model.js";
 import asyncHandler from "../utils/asyncHandler.js";
 import ApiRespons from "../utils/ApiRespons.js";
 import ApiError from "../utils/ApiError.js";
 import bcrypt from "bcryptjs";
-import { generateAccessToken } from "../utils/generateToken.js";
-import { generateRefreshToken } from "../utils/generateToken.js";
 
 const generateAccessRefreshToken = async (userID) => {
   try {
@@ -20,9 +18,10 @@ const generateAccessRefreshToken = async (userID) => {
 
     return { accessToken, refreshToken };
   } catch (error) {
+    console.error("Token generation error:", error);
     throw new ApiError(
       500,
-      "Something went wrong while genreting RefreshToken and AccessToken "
+      "Something went wrong while generating RefreshToken and AccessToken"
     );
   }
 };
@@ -93,16 +92,17 @@ export const loginAdmin = asyncHandler(async (req, res) => {
     "-password -refreshToken"
   );
 
+  // Ensure the role is set to admin
+  loggedInAdmin.role = "admin";
+
   const options = {
     httpOnly: true,
     secure: true,
     sameSite: "none",
     partitioned: true,
     path: "/",
+    maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
   };
-  // const adminToSend = admin.toObject();
-  // delete adminToSend.password;
-  // delete adminToSend.refreshToken;
 
   return res
     .status(200)
@@ -245,5 +245,19 @@ export const getEventById = asyncHandler(async (req, res) => {
     res.status(200).json(event);
   } catch (error) {
     res.status(500).json({ message: "Internal server error." });
+  }
+});
+
+export const getAdminProfile = asyncHandler(async (req, res) => {
+  try {
+    // The user object is already attached to req by the verifyJWT middleware
+    // and the isAdmin middleware ensures the user has admin role
+    const admin = req.user;
+
+    return res
+      .status(200)
+      .json(new ApiRespons(200, admin, "Admin profile fetched successfully"));
+  } catch (error) {
+    throw new ApiError(500, "Error retrieving admin profile");
   }
 });

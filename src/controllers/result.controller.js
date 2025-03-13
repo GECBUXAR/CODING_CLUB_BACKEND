@@ -1,6 +1,6 @@
-import Result from "../model/result.model.js";
-import User from "../model/user.model.js";
-import Event from "../model/event.model.js";
+import Result from "../models/result.model.js";
+import User from "../models/user.model.js";
+import Event from "../models/event.model.js";
 import asyncHandler from "../utils/asyncHandler.js";
 
 // Middleware to check if user is admin
@@ -32,6 +32,34 @@ export const getResultsByEventTitle = asyncHandler(async (req, res) => {
   }
 
   const results = await Result.find({ eventId: event._id })
+    .populate("userId", "name email registrationNumber")
+    .sort({ score: -1 });
+
+  return res.status(200).json({
+    status: "success",
+    data: results,
+  });
+});
+
+export const getResultsByEventId = asyncHandler(async (req, res) => {
+  const { eventId } = req.body;
+
+  if (!eventId) {
+    return res.status(400).json({
+      status: "error",
+      message: "Event ID is required",
+    });
+  }
+
+  const event = await Event.findById(eventId);
+  if (!event) {
+    return res.status(404).json({
+      status: "error",
+      message: "Event not found",
+    });
+  }
+
+  const results = await Result.find({ eventId })
     .populate("userId", "name email registrationNumber")
     .sort({ score: -1 });
 

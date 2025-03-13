@@ -11,21 +11,29 @@ app.use((req, res, next) => {
 });
 
 // CORS configuration
+const allowedOriginsEnv = process.env.CORS_ORIGIN || "";
 const allowedOrigins = [
   "http://localhost:5173",
   "https://coding-club-frontend-three.vercel.app",
   "https://coding-club-frontend-git-letest-gec-buxars-projects.vercel.app",
   "https://coding-club-frontend-git-dev-gec-buxars-projects.vercel.app",
+  ...allowedOriginsEnv.split(",").filter((origin) => origin.trim()),
 ];
+
+console.log("Allowed CORS origins:", allowedOrigins);
 
 const corsOptions = {
   origin: (origin, callback) => {
     // Allow requests with no origin (like mobile apps, curl, etc.)
     if (!origin) return callback(null, true);
 
-    if (allowedOrigins.indexOf(origin) !== -1) {
+    if (
+      allowedOrigins.includes(origin) ||
+      process.env.NODE_ENV !== "production"
+    ) {
       callback(null, true);
     } else {
+      console.warn(`Origin ${origin} not allowed by CORS policy`);
       callback(new Error("Not allowed by CORS"));
     }
   },
@@ -50,7 +58,8 @@ app.use(cors(corsOptions));
 // Handle preflight requests
 app.options("*", cors(corsOptions));
 
-app.use(express.json());
+// Parse JSON request body (increased limit for uploads)
+app.use(express.json({ limit: "10mb" }));
 app.use(cookieParser());
 app.use(express.urlencoded({ extended: true, limit: "16kb" }));
 app.use(express.static("public"));
@@ -61,7 +70,16 @@ import eventRoutes from "./routes/event.route.js";
 import userRoutes from "./routes/user.route.js";
 import resultRoutes from "./routes/result.route.js";
 import userAnswerRoutes from "./routes/userAnswer.route.js";
-import testimonialRoutes from "./routes/testimonial.route.js";
+import facultyRoutes from "./routes/faculty.route.js";
+import examRoutes from "./routes/exam.route.js";
+
+// Request logging middleware for debugging
+app.use((req, res, next) => {
+  if (req.method === "POST" || req.method === "PUT") {
+    console.log("Request Body:", JSON.stringify(req.body, null, 2));
+  }
+  next();
+});
 
 // Routes Declaration
 app.use("/api/v1/admin", router);
@@ -69,7 +87,8 @@ app.use("/api/v1/events", eventRoutes);
 app.use("/api/v1/users", userRoutes);
 app.use("/api/v1/results", resultRoutes);
 app.use("/api/v1/user-answers", userAnswerRoutes);
-app.use("/api/v1/testimonials", testimonialRoutes);
+app.use("/api/v1/faculty", facultyRoutes);
+app.use("/api/v1/exams", examRoutes);
 
 // Add a route handler for .well-known/version endpoint
 app.get("/.well-known/version", (req, res) => {
@@ -79,7 +98,7 @@ app.get("/.well-known/version", (req, res) => {
   });
 });
 
-// Error handling middleware
+// Global error handler middleware - improved with more detailed error info
 app.use((err, req, res, next) => {
   console.error("Error:", err.stack);
 
@@ -95,10 +114,16 @@ app.use((err, req, res, next) => {
     );
   }
 
+  // Enhanced error response with additional details for debugging
   res.status(err.status || 500).json({
     status: "error",
     message: err.message || "Internal server error",
-    ...(process.env.NODE_ENV === "development" && { stack: err.stack }),
+    path: req.path,
+    method: req.method,
+    ...(process.env.NODE_ENV === "development" && {
+      stack: err.stack,
+      body: req.body,
+    }),
   });
 });
 
@@ -112,7 +137,7 @@ app.use((req, res) => {
 
   res.status(404).json({
     status: "error",
-    message: "Route not found",
+    message: `Route not found: ${req.method} ${req.path}`,
   });
 });
 

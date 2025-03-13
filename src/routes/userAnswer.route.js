@@ -3,7 +3,7 @@ import {
   createUserAnswer,
   getAnswerByEventTitleOrRegistrationNumber,
   getAnswerByUserRegistrationNumber,
-} from "../controller/userAnswer.controller.js";
+} from "../controllers/userAnswer.controller.js";
 
 const router = express.Router();
 

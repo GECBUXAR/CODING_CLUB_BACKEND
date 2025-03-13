@@ -1,47 +1,51 @@
-import User from "../model/user.model.js";
+import User from "../models/user.model.js";
 import asyncHandler from "../utils/asyncHandler.js";
 import ApiRespons from "../utils/ApiRespons.js";
 import ApiError from "../utils/ApiError.js";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
-import { generateAccessToken } from "../utils/generateToken.js";
-import { generateRefreshToken } from "../utils/generateToken.js";
 
 const generateAccessRefreshToken = async (userID) => {
   try {
     const user = await User.findById(userID);
-    const accessToken = generateAccessToken(userID);
-    console.log(accessToken);
-    
-    const refreshToken = generateRefreshToken(userID);
+    if (!user) {
+      throw new ApiError(404, "User not found");
+    }
+
+    const accessToken = await user.generateAccessToken();
+    const refreshToken = await user.generateRefreshToken();
 
     user.refreshToken = refreshToken;
     await user.save({ validateBeforeSave: false });
 
     return { accessToken, refreshToken };
   } catch (error) {
+    console.error("Token generation error:", error);
     throw new ApiError(
       500,
-      "Something went wrong while genreting RefreshToken and AccessToken "
+      "Something went wrong while generating RefreshToken and AccessToken"
     );
   }
 };
 
 export const createUser = asyncHandler(async (req, res) => {
   const {
-    name,
+    fullName,
     email,
-    mobile,
+    password,
+    phoneNumber,
     registrationNumber,
     branch,
     semester,
-    password,
+    role,
   } = req.body;
 
+  console.log("Registration data received:", req.body);
+
   if (
-    !name ||
+    !fullName ||
     !email ||
-    !mobile ||
+    !phoneNumber ||
     !registrationNumber ||
     !branch ||
     !semester ||
@@ -60,33 +64,28 @@ export const createUser = asyncHandler(async (req, res) => {
     );
   }
 
-  // const hashedPassword = await bcrypt.hash(password, 10);
-
   const newUser = await User.create({
-    name,
+    name: fullName,
     email,
-    mobile,
+    mobile: phoneNumber,
     registrationNumber,
     branch,
     semester,
     password,
+    role: role || "user",
   });
 
-  // const userToSend = newUser.toObject();
-
   const createdUser = await User.findById(newUser._id).select(
-    " -password -refreshToken "
+    "-password -refreshToken"
   );
 
   if (!createdUser) {
-    throw new ApiError(500, "something went wrong while SignUp the user");
+    throw new ApiError(500, "Something went wrong while registering the user");
   }
 
   return res
     .status(200)
-    .json(new ApiRespons(200, createdUser, "User registerd Successfully"));
-
-  // res.status(200).json(userToSend)
+    .json(new ApiRespons(200, createdUser, "User registered successfully"));
 });
 
 export const loginUser = asyncHandler(async (req, res) => {
@@ -173,6 +172,36 @@ export const logOutUser = asyncHandler(async (req, res) => {
     .json(new ApiRespons(200, {}, "User logged out Successfully"));
 });
 
+// New endpoint specifically for getting the user profile
+export const getUserProfile = asyncHandler(async (req, res) => {
+  try {
+    // Get token from cookie instead of authorization header
+    const token = req.cookies?.accessToken;
+
+    if (!token) {
+      throw new ApiError(401, "Authentication required. Please login.");
+    }
+
+    // Verify the token
+    const decoded = jwt.verify(token, process.env.ACCESS_TOKEN_SECRET);
+
+    // Get user data without sensitive information
+    const user = await User.findById(decoded.id).select(
+      "-password -refreshToken"
+    );
+
+    if (!user) {
+      throw new ApiError(404, "User not found");
+    }
+
+    return res
+      .status(200)
+      .json(new ApiRespons(200, user, "User profile fetched successfully"));
+  } catch (error) {
+    throw new ApiError(401, "Authentication required. Please login.");
+  }
+});
+
 export const getAllUsers = asyncHandler(async (req, res) => {
   try {
     const users = await User.find().select("-password");
@@ -194,20 +223,20 @@ export const getUserById = asyncHandler(async (req, res) => {
   }
 });
 
-export const getUserByToken = asyncHandler(async (req,res)=>{
- try {
-   const {token} = req.body;
-   if(!token){
-     throw new ApiError(404,"token not found");
-   }   
-   const decode = jwt.verify(token,process.env.ACCESS_TOKEN_SECRET);
-   const user = await User.findById(decode.id).select("-password");
-   
-   return res.status(200).json(new ApiRespons(200,user))
- } catch (error) {
-  throw new ApiError(401, error);
- }
-})
+export const getUserByToken = asyncHandler(async (req, res) => {
+  try {
+    const { token } = req.body;
+    if (!token) {
+      throw new ApiError(404, "token not found");
+    }
+    const decode = jwt.verify(token, process.env.ACCESS_TOKEN_SECRET);
+    const user = await User.findById(decode.id).select("-password");
+
+    return res.status(200).json(new ApiRespons(200, user));
+  } catch (error) {
+    throw new ApiError(401, error);
+  }
+});
 
 export const updateUser = asyncHandler(async (req, res) => {
   try {

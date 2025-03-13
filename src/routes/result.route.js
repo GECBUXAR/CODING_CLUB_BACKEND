@@ -6,7 +6,7 @@ import {
   updateResult,
   deleteResult,
   getResultsByEventTitle,
-} from "../controller/result.controller.js";
+} from "../controllers/result.controller.js";
 
 const router = express.Router();
 
