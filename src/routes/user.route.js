@@ -18,8 +18,8 @@ UserRouter.get("/:id", getUserById);
 UserRouter.post("/signup", createUser);
 UserRouter.post("/login", loginUser);
 UserRouter.post("/logout", logOutUser);
-UserRouter.put("/:id", updateUser);
-UserRouter.delete("/:id", deleteUser);
+UserRouter.put("/update-profile", updateUser);
+UserRouter.delete("/delete-user", deleteUser);
 UserRouter.post("/subscribe", subscribe);
 UserRouter.post("/me",getUserByToken);
 
