@@ -55,7 +55,7 @@ const corsOptions = {
 // Apply CORS middleware
 app.use(cors(corsOptions));
 
-// Handle preflight requests
+// Handle preflight requests explicitly
 app.options("*", cors(corsOptions));
 
 // Parse JSON request body (increased limit for uploads)

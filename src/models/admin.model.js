@@ -28,7 +28,7 @@ adminSchema.methods.generateAccessToken = async function () {
   return jwt.sign(
     {
       id: this._id,
-      name: this.username,
+      name: this.name,
       email: this.email,
       role: this.role,
     },

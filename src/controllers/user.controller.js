@@ -8,18 +8,12 @@ import jwt from "jsonwebtoken";
 const generateAccessRefreshToken = async (userID) => {
   try {
     const user = await User.findById(userID);
-<<<<<<< HEAD:src/controllers/user.controller.js
     if (!user) {
       throw new ApiError(404, "User not found");
     }
 
     const accessToken = await user.generateAccessToken();
     const refreshToken = await user.generateRefreshToken();
-=======
-    const accessToken = generateAccessToken(userID);
-    
-    const refreshToken = generateRefreshToken(userID);
->>>>>>> 66e2afac091ba58ade411718f28233c14ccf18d6:src/controller/user.controller.js
 
     user.refreshToken = refreshToken;
     await user.save({ validateBeforeSave: false });
@@ -43,12 +37,7 @@ export const createUser = asyncHandler(async (req, res) => {
     registrationNumber,
     branch,
     semester,
-<<<<<<< HEAD:src/controllers/user.controller.js
     role,
-=======
-    password,
-    isSubscribed
->>>>>>> 66e2afac091ba58ade411718f28233c14ccf18d6:src/controller/user.controller.js
   } = req.body;
 
   console.log("Registration data received:", req.body);
@@ -83,11 +72,7 @@ export const createUser = asyncHandler(async (req, res) => {
     branch,
     semester,
     password,
-<<<<<<< HEAD:src/controllers/user.controller.js
     role: role || "user",
-=======
-    isSubscribed
->>>>>>> 66e2afac091ba58ade411718f28233c14ccf18d6:src/controller/user.controller.js
   });
 
   const createdUser = await User.findById(newUser._id).select(
@@ -128,23 +113,15 @@ export const loginUser = asyncHandler(async (req, res) => {
     "-password -refreshToken"
   );
 
-  // const accessToken = generateAccessToken(user);
-  // const refreshToken = generateRefreshToken(user);
-  // user.refreshToken = refreshToken;
-  // await user.save();
-
+  // Configure cookie options based on environment
+  const isProduction = process.env.NODE_ENV === "production";
   const options = {
     httpOnly: true,
-    secure: true,
-    sameSite: "none",
-    partitioned: true,
+    secure: isProduction, // Only use secure in production
+    sameSite: isProduction ? "none" : "lax", // Use 'none' in production for cross-site requests
     path: "/",
     maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
   };
-
-  // const userToSend = user.toObject();
-  // delete userToSend.password;
-  // delete userToSend.refreshToken;
 
   return res
     .status(200)
@@ -172,11 +149,12 @@ export const logOutUser = asyncHandler(async (req, res) => {
     }
   );
 
+  // Configure cookie options based on environment
+  const isProduction = process.env.NODE_ENV === "production";
   const options = {
     httpOnly: true,
-    secure: true,
-    sameSite: "none",
-    partitioned: true,
+    secure: isProduction, // Only use secure in production
+    sameSite: isProduction ? "none" : "lax", // Use 'none' in production for cross-site requests
     path: "/",
   };
 
@@ -255,36 +233,43 @@ export const getUserByToken = asyncHandler(async (req, res) => {
 
 export const updateUser = asyncHandler(async (req, res) => {
   try {
-    const {id,name,email,mobile,registrationNumber,branch,semester,isSubscribed} = req.body;
-    
+    const {
+      id,
+      name,
+      email,
+      mobile,
+      registrationNumber,
+      branch,
+      semester,
+      isSubscribed,
+    } = req.body;
+
     if (!id) {
-      return res.status(404).json(new ApiRespons(404,"User ID is required"));
+      return res.status(404).json(new ApiRespons(404, "User ID is required"));
     }
-    const updatedField={};
-    if(name){
-      updatedField.name=name;
+    const updatedField = {};
+    if (name) {
+      updatedField.name = name;
     }
-    if(email)
-      updatedField.email=email;
-    if(mobile)
-      updatedField.mobile=mobile;
-    if(registrationNumber)
-      updatedField.registrationNumber=registrationNumber;
-    if(branch)
-      updatedField.branch=branch;
-    if(semester)
-      updatedField.semester=semester;
-    if(isSubscribed)
-      updatedField.isSubscribed=isSubscribed;
-    const updatedUser = await user.findByIdAndUpdate(
-      id,{
-        $set:updatedField
-      },
-      {
-        new:true,
-      }
-    ).select("-password");
-    res.status(200).json(updatedUser,"user updated successfully");
+    if (email) updatedField.email = email;
+    if (mobile) updatedField.mobile = mobile;
+    if (registrationNumber)
+      updatedField.registrationNumber = registrationNumber;
+    if (branch) updatedField.branch = branch;
+    if (semester) updatedField.semester = semester;
+    if (isSubscribed) updatedField.isSubscribed = isSubscribed;
+    const updatedUser = await user
+      .findByIdAndUpdate(
+        id,
+        {
+          $set: updatedField,
+        },
+        {
+          new: true,
+        }
+      )
+      .select("-password");
+    res.status(200).json(updatedUser, "user updated successfully");
   } catch (error) {
     res.status(400).send(error);
   }
@@ -295,7 +280,7 @@ export const deleteUser = asyncHandler(async (req, res) => {
     const id = req.body;
     const user = await User.findByIdAndDelete(id);
     if (!user) {
-      return res.status(404).json(404,"user not found");
+      return res.status(404).json(404, "user not found");
     }
     res.status(200).send(user);
   } catch (error) {

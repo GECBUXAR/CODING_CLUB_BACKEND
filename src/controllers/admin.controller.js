@@ -7,14 +7,15 @@ import ApiRespons from "../utils/ApiRespons.js";
 import ApiError from "../utils/ApiError.js";
 import bcrypt from "bcryptjs";
 
-const generateAccessRefreshToken = async (userID) => {
+const generateAccessRefreshToken = async (adminID) => {
   try {
-    const user = await User.findById(userID);
-    const accessToken =  generateAccessToken(userID);
-    const refreshToken =  generateRefreshToken(userID);
+    const admin = await Admin.findById(adminID);
+    // Use the admin model's methods for token generation
+    const accessToken = await admin.generateAccessToken();
+    const refreshToken = await admin.generateRefreshToken();
 
-    user.refreshToken = refreshToken;
-    await user.save({ validateBeforeSave: false });
+    admin.refreshToken = refreshToken;
+    await admin.save({ validateBeforeSave: false });
 
     return { accessToken, refreshToken };
   } catch (error) {
@@ -78,7 +79,7 @@ export const loginAdmin = asyncHandler(async (req, res) => {
     return res.status(404).json({ message: "Admin not found." });
   }
 
-  const isPasswordValid = await bcrypt.compare(password, admin.password);
+  const isPasswordValid = await admin.comparePassword(password);
 
   if (!isPasswordValid) {
     throw new ApiError(401, "Invalid Password");
@@ -119,7 +120,7 @@ export const loginAdmin = asyncHandler(async (req, res) => {
 
 export const logOutAdmin = asyncHandler(async (req, res) => {
   await Admin.findByIdAndUpdate(
-    req.admin._id,
+    req.user._id,
     {
       $set: {
         refreshToken: undefined,
@@ -171,30 +172,50 @@ export const createEvent = asyncHandler(async (req, res) => {
       isExam,
     });
     await event.save();
-    res.status(201).json(event);
-  } catch (error) {
-    res.status(500).json(error);
-  }
-  try {
-    const subscribedUsers = await User.find({ isSubscribed: true });
-    const emails = subscribedUsers.map((user) => user.email).join(",");
 
-    // Email notification logic
-    const mailOptions = {
-      from: "your-email@gmail.com",
-      to: emails, // Send to all subscribed users
-      subject: "New Event Added",
-      text: `A new event has been added: ${JSON.stringify(eventDetails)}`,
-    };
+    // Try to send email notifications to subscribed users
+    try {
+      const subscribedUsers = await User.find({ isSubscribed: true });
 
-    transporter.sendMail(mailOptions, (error, info) => {
-      if (error) {
-        return res.status(500).send("Error sending email");
+      // Only proceed if there are subscribed users
+      if (subscribedUsers && subscribedUsers.length > 0) {
+        const emails = subscribedUsers.map((user) => user.email).join(",");
+
+        // Create a transporter for nodemailer
+        const transporter = nodemailer.createTransport({
+          service: process.env.EMAIL_SERVICE || "gmail",
+          auth: {
+            user: process.env.EMAIL_USER,
+            pass: process.env.EMAIL_PASSWORD,
+          },
+        });
+
+        // Email notification logic
+        const mailOptions = {
+          from: process.env.EMAIL_USER,
+          to: emails, // Send to all subscribed users
+          subject: "New Event Added",
+          text: `A new event has been added: ${title}\n\nDescription: ${description}\nDate: ${date}\nLocation: ${location}`,
+        };
+
+        // Send email asynchronously without blocking the response
+        transporter.sendMail(mailOptions).catch((err) => {
+          console.error("Error sending email notification:", err);
+        });
       }
-      res.status(200).send("Event created and email sent to subscribers.");
+    } catch (emailError) {
+      // Log the error but don't fail the request
+      console.error("Error with email notifications:", emailError);
+    }
+
+    // Return success response with the created event
+    return res.status(201).json({
+      status: "success",
+      data: event,
+      message: "Event created successfully",
     });
   } catch (error) {
-    res.status(500).send("Error retrieving subscribed users.");
+    throw new ApiError(500, error.message || "Error creating event");
   }
 });
 
