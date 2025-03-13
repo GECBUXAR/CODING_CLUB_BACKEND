@@ -1,13 +1,13 @@
-import Testimonial from "../model/testimonial.model.js";
+import faculty from "../model/faculty.model.js";
 import mongoose from "mongoose";
 
-const seedTestimonials = async () => {
+const seedfacultys = async () => {
   try {
-    const count = await Testimonial.countDocuments();
+    const count = await faculty.countDocuments();
 
-    // Only seed if no testimonials exist
+    // Only seed if no facultys exist
     if (count === 0) {
-      const testimonials = [
+      const facultys = [
         {
           name: "Dr. Rajesh Kumar",
           role: "Professor, Computer Science",
@@ -46,14 +46,14 @@ const seedTestimonials = async () => {
         },
       ];
 
-      await Testimonial.insertMany(testimonials);
-      console.log("Testimonials seeded successfully!");
+      await faculty.insertMany(facultys);
+      console.log("facultys seeded successfully!");
     } else {
-      console.log("Testimonials already exist, skipping seed.");
+      console.log("facultys already exist, skipping seed.");
     }
   } catch (error) {
-    console.error("Error seeding testimonials:", error);
+    console.error("Error seeding facultys:", error);
   }
 };
 
-export { seedTestimonials };
+export { seedfacultys };

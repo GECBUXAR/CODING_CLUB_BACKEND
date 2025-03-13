@@ -12,8 +12,8 @@ import { generateRefreshToken } from "../utils/generateToken.js";
 const generateAccessRefreshToken = async (userID) => {
   try {
     const user = await User.findById(userID);
-    const accessToken = await user.generateAccessToken();
-    const refreshToken = await user.generateRefreshToken();
+    const accessToken =  generateAccessToken(userID);
+    const refreshToken =  generateRefreshToken(userID);
 
     user.refreshToken = refreshToken;
     await user.save({ validateBeforeSave: false });

@@ -2,7 +2,7 @@ import dotenv from "dotenv";
 import http from "node:http";
 import app from "./app.js";
 import connectDB from "./db/index.js";
-import { seedTestimonials } from "./utils/seedData.js";
+import { seedfacultys } from "./utils/seedData.js";
 
 // Global error handler for uncaught exceptions
 process.on("uncaughtException", (error) => {
@@ -31,8 +31,8 @@ connectDB()
     });
 
     // Seed initial data
-    seedTestimonials().catch((err) => {
-      console.error("Error seeding testimonials:", err);
+    seedfacultys().catch((err) => {
+      console.error("Error seeding facultys:", err);
     });
 
     app.get("/", (req, res) => {
