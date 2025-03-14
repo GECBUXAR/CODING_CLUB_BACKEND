@@ -27,7 +27,7 @@ const generateAccessRefreshToken = async (adminID) => {
   }
 };
 
-export const createAdmin = asyncHandler(async (req, res) => {
+const createAdmin = asyncHandler(async (req, res) => {
   const { name, email, password, secretKey } = req.body;
 
   if (!name || !email || !password || !secretKey) {
@@ -63,7 +63,7 @@ export const createAdmin = asyncHandler(async (req, res) => {
     .json(new ApiRespons(200, createdAdmin, "Admin registerd Successfully"));
 });
 
-export const loginAdmin = asyncHandler(async (req, res) => {
+const loginAdmin = asyncHandler(async (req, res) => {
   const { email, password, secretKey } = req.body;
 
   if (!email || !password || !secretKey) {
@@ -118,7 +118,7 @@ export const loginAdmin = asyncHandler(async (req, res) => {
     );
 });
 
-export const logOutAdmin = asyncHandler(async (req, res) => {
+const logOutAdmin = asyncHandler(async (req, res) => {
   await Admin.findByIdAndUpdate(
     req.user._id,
     {
@@ -146,7 +146,7 @@ export const logOutAdmin = asyncHandler(async (req, res) => {
     .json(new ApiRespons(200, {}, "User logged out Successfully"));
 });
 
-export const createEvent = asyncHandler(async (req, res) => {
+const createEvent = asyncHandler(async (req, res) => {
   try {
     if (!req.user || req.user.role !== "admin") {
       return res.status(403).json({ message: "Access denied. Admins only." });
@@ -219,7 +219,7 @@ export const createEvent = asyncHandler(async (req, res) => {
   }
 });
 
-export const updateEvent = asyncHandler(async (req, res) => {
+const updateEvent = asyncHandler(async (req, res) => {
   try {
     if (!req.user || req.user.role !== "admin") {
       return res.status(403).json({ message: "Access denied. Admins only." });
@@ -237,7 +237,7 @@ export const updateEvent = asyncHandler(async (req, res) => {
   }
 });
 
-export const deleteEvent = asyncHandler(async (req, res) => {
+const deleteEvent = asyncHandler(async (req, res) => {
   try {
     if (!req.user || req.user.role !== "admin") {
       return res.status(403).json({ message: "Access denied. Admins only." });
@@ -250,7 +250,7 @@ export const deleteEvent = asyncHandler(async (req, res) => {
   }
 });
 
-export const getEvents = asyncHandler(async (req, res) => {
+const getEvents = asyncHandler(async (req, res) => {
   try {
     const events = await Event.find();
     res.status(200).json(events);
@@ -259,7 +259,7 @@ export const getEvents = asyncHandler(async (req, res) => {
   }
 });
 
-export const getEventById = asyncHandler(async (req, res) => {
+const getEventById = asyncHandler(async (req, res) => {
   try {
     const { id } = req.params;
     const event = await Event.findById(id);
@@ -269,7 +269,7 @@ export const getEventById = asyncHandler(async (req, res) => {
   }
 });
 
-export const getAdminProfile = asyncHandler(async (req, res) => {
+const getAdminProfile = asyncHandler(async (req, res) => {
   try {
     // The user object is already attached to req by the verifyJWT middleware
     // and the isAdmin middleware ensures the user has admin role
@@ -282,3 +282,41 @@ export const getAdminProfile = asyncHandler(async (req, res) => {
     throw new ApiError(500, "Error retrieving admin profile");
   }
 });
+
+// Check if a user is an admin by email (no authentication required)
+const checkAdminByEmail = asyncHandler(async (req, res) => {
+  try {
+    const { email } = req.query;
+
+    if (!email) {
+      throw new ApiError(400, "Email is required");
+    }
+
+    // Check if the email belongs to an admin
+    const admin = await Admin.findOne({ email });
+
+    // Return whether the email belongs to an admin or not
+    return res.status(200).json({
+      success: true,
+      isAdmin: !!admin, // Convert to boolean
+      message: admin
+        ? "Email belongs to an admin"
+        : "Email does not belong to an admin",
+    });
+  } catch (error) {
+    throw error.statusCode ? error : new ApiError(500, "Internal server error");
+  }
+});
+
+export {
+  getAdminProfile,
+  getEventById,
+  getEvents,
+  updateEvent,
+  deleteEvent,
+  createEvent,
+  createAdmin,
+  loginAdmin,
+  logOutAdmin,
+  checkAdminByEmail,
+};
