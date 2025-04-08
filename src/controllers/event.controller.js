@@ -20,7 +20,16 @@ const isAdmin = asyncHandler(async (req, res, next) => {
  */
 export const getAllEvents = asyncHandler(async (req, res) => {
   try {
-    const { category, status, isExam, skillLevel } = req.query;
+    const {
+      category,
+      status,
+      isExam,
+      skillLevel,
+      page = 1,
+      limit = 10,
+      sortBy = "date",
+      sortOrder = "desc",
+    } = req.query;
 
     // Build filter object based on query parameters
     const filter = {};
@@ -29,13 +38,36 @@ export const getAllEvents = asyncHandler(async (req, res) => {
     if (isExam !== undefined) filter.isExam = isExam === "true";
     if (skillLevel) filter.skillLevel = skillLevel;
 
+    // Parse pagination parameters
+    const pageNum = Number.parseInt(page, 10);
+    const limitNum = Number.parseInt(limit, 10);
+    const skip = (pageNum - 1) * limitNum;
+
+    // Build sort object
+    const sort = {};
+    sort[sortBy] = sortOrder === "asc" ? 1 : -1;
+
+    // Count total documents for pagination metadata
+    const totalEvents = await Event.countDocuments(filter);
+
+    // Get paginated events
     const events = await Event.find(filter)
-      .sort({ date: -1 })
+      .sort(sort)
+      .skip(skip)
+      .limit(limitNum)
       .select("-questions -results"); // Don't send all questions and results in listing
 
     return res.status(200).json({
       status: "success",
       count: events.length,
+      totalEvents,
+      pagination: {
+        page: pageNum,
+        limit: limitNum,
+        totalPages: Math.ceil(totalEvents / limitNum),
+        hasNextPage: pageNum * limitNum < totalEvents,
+        hasPrevPage: pageNum > 1,
+      },
       data: events,
     });
   } catch (error) {

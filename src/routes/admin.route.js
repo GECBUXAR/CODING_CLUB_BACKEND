@@ -12,13 +12,17 @@ import {
   createEvent,
 } from "../controllers/admin.controller.js";
 import { verifyJWT, isAdmin } from "../middlewares/auth.middleware.js";
+import {
+  authLimiter,
+  createUserLimiter,
+} from "../middlewares/rateLimit.middleware.js";
 
 const router = express.Router();
 
 // Public routes - these don't require authentication
-router.post("/signup", createAdmin);
-router.post("/login", loginAdmin);
-router.get("/check-by-email", checkAdminByEmail);
+router.post("/signup", createUserLimiter, createAdmin);
+router.post("/login", authLimiter, loginAdmin);
+router.get("/check-by-email", authLimiter, checkAdminByEmail);
 
 // Event routes
 router.get("/events", getEvents);

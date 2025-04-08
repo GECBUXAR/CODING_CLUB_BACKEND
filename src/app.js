@@ -1,6 +1,7 @@
 import express from "express";
 import cookieParser from "cookie-parser";
 import cors from "cors";
+import { apiLimiter } from "./middlewares/rateLimit.middleware.js";
 
 const app = express();
 
@@ -58,10 +59,10 @@ app.use(cors(corsOptions));
 // Handle preflight requests explicitly
 app.options("*", cors(corsOptions));
 
-// Parse JSON request body (increased limit for uploads)
-app.use(express.json({ limit: "10mb" }));
+// Parse JSON request body (reasonable limit for security)
+app.use(express.json({ limit: "2mb" }));
 app.use(cookieParser());
-app.use(express.urlencoded({ extended: true, limit: "16kb" }));
+app.use(express.urlencoded({ extended: true, limit: "2mb" }));
 app.use(express.static("public"));
 
 // Routes Import
@@ -80,6 +81,9 @@ app.use((req, res, next) => {
   }
   next();
 });
+
+// Apply API rate limiter to all API routes
+app.use("/api/v1", apiLimiter);
 
 // Routes Declaration
 app.use("/api/v1/admin", router);

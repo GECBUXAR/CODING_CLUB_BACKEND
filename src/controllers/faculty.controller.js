@@ -7,7 +7,7 @@ import ApiRespons from "../utils/ApiRespons.js";
 // Middleware to check if user is admin
 const isAdmin = asyncHandler(async (req, res, next) => {
   if (!req.user || req.user.role !== "admin") {
-    return res.status(403).json({ message: "Access denied. Admins only." });
+    throw new ApiError(403, "Access denied. Admins only.");
   }
   next();
 });

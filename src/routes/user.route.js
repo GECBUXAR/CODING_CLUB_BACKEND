@@ -12,12 +12,16 @@ import {
   getUserProfile,
 } from "../controllers/user.controller.js";
 import { verifyJWT } from "../middlewares/auth.middleware.js";
+import {
+  authLimiter,
+  createUserLimiter,
+} from "../middlewares/rateLimit.middleware.js";
 
 const UserRouter = express.Router();
 
 // Public routes
-UserRouter.post("/signup", createUser);
-UserRouter.post("/login", loginUser);
+UserRouter.post("/signup", createUserLimiter, createUser);
+UserRouter.post("/login", authLimiter, loginUser);
 UserRouter.post("/subscribe", subscribe);
 
 // Protected routes

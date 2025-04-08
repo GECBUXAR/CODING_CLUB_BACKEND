@@ -67,16 +67,16 @@ const loginAdmin = asyncHandler(async (req, res) => {
   const { email, password, secretKey } = req.body;
 
   if (!email || !password || !secretKey) {
-    return res.status(400).json({ message: "All fields are required." });
+    throw new ApiError(400, "All fields are required.");
   }
 
   if (secretKey !== process.env.ADMINSECRETKEY) {
-    return res.status(403).json({ message: "Invalid secret key." });
+    throw new ApiError(403, "Invalid secret key.");
   }
 
   const admin = await Admin.findOne({ email });
   if (!admin) {
-    return res.status(404).json({ message: "Admin not found." });
+    throw new ApiError(404, "Admin not found.");
   }
 
   const isPasswordValid = await admin.comparePassword(password);
