@@ -4,7 +4,7 @@ import Question from "../models/question.model.js";
 import Result from "../models/result.model.js";
 import asyncHandler from "../utils/asyncHandler.js";
 import ApiError from "../utils/ApiError.js";
-import ApiRespons from "../utils/ApiRespons.js";
+import ApiResponse from "../utils/ApiRespons.js";
 
 // Middleware to check if user is admin
 const isAdmin = asyncHandler(async (req, res, next) => {
@@ -15,7 +15,7 @@ const isAdmin = asyncHandler(async (req, res, next) => {
 });
 
 /**
- * Get all events (both regular events and exams)
+ * Get all events (only regular events, not exams)
  * Access: Public
  */
 export const getAllEvents = asyncHandler(async (req, res) => {
@@ -23,7 +23,6 @@ export const getAllEvents = asyncHandler(async (req, res) => {
     const {
       category,
       status,
-      isExam,
       skillLevel,
       page = 1,
       limit = 10,
@@ -32,10 +31,9 @@ export const getAllEvents = asyncHandler(async (req, res) => {
     } = req.query;
 
     // Build filter object based on query parameters
-    const filter = {};
+    const filter = { isExam: false }; // Only get regular events, not exams
     if (category) filter.category = category;
     if (status) filter.status = status;
-    if (isExam !== undefined) filter.isExam = isExam === "true";
     if (skillLevel) filter.skillLevel = skillLevel;
 
     // Parse pagination parameters
@@ -269,50 +267,6 @@ export const deleteEvent = [
     }
   }),
 ];
-
-/**
- * Get all questions for an event
- * Access: Depends on the event status
- */
-export const getEventQuestions = asyncHandler(async (req, res) => {
-  try {
-    const { id } = req.params;
-
-    const event = await Event.findById(id).populate("questions");
-
-    if (!event) {
-      throw new ApiError(404, "Event not found");
-    }
-
-    // If exam and not admin, check if user can access questions
-    if (event.isExam && req.user?.role !== "admin") {
-      // Check if exam is open
-      if (!event.examDetails?.isOpen) {
-        throw new ApiError(403, "This exam is not currently open");
-      }
-
-      // Check if user is registered
-      const isRegistered = event.participants.some(
-        (p) => p.user.toString() === req.user._id.toString()
-      );
-
-      if (!isRegistered) {
-        throw new ApiError(403, "You are not registered for this exam");
-      }
-    }
-
-    return res.status(200).json({
-      status: "success",
-      count: event.questions.length,
-      data: event.questions,
-    });
-  } catch (error) {
-    throw new ApiError(
-      error.statusCode || 500,
-      error.message || "Error fetching event questions"
-    );
-  }
-});
 
 /**
  * Register for an event

@@ -5,7 +5,6 @@ import {
   createEvent,
   updateEvent,
   deleteEvent,
-  getEventQuestions,
   registerForEvent,
   unregisterFromEvent,
   markAttendance,
@@ -28,7 +27,6 @@ router.get("/user-events", verifyJWT, getUserEvents);
 
 // Dynamic parameter routes
 router.get("/:id", getEventById);
-router.get("/:id/questions", getEventQuestions);
 
 // Other protected routes
 router.post("/", verifyJWT, createEvent);
