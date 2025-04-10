@@ -32,8 +32,6 @@ router.get("/:id", getEventById);
 router.post("/", verifyJWT, createEvent);
 router.put("/:id", verifyJWT, updateEvent);
 router.delete("/:id", verifyJWT, deleteEvent);
-router.post("/:id/register", verifyJWT, registerForEvent);
-router.post("/:id/unregister", verifyJWT, unregisterFromEvent);
 router.post("/:id/enroll", verifyJWT, registerForEvent);
 router.post("/:id/unenroll", verifyJWT, unregisterFromEvent);
 router.post("/:id/attendance", verifyJWT, markAttendance);

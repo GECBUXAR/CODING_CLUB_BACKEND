@@ -53,15 +53,4 @@ connectDB()
     process.exit(1);
   });
 
-// const port = 5000;
-
-// app.get("/", (req, res) => {
-//   res.send("Hello World!");
-// });
-
-// app.listen(port, () => {
-//   console.log(`Example app listening at http://localhost:${port}`);
-// });
-
-// Special handling for Vercel serverless environment
 export default app;

@@ -133,6 +133,11 @@ export const createEvent = [
         );
       }
 
+      // Check if user is authenticated
+      if (!req.user) {
+        throw new ApiError(401, "Authentication required to create an event");
+      }
+
       // Create the event
       const newEvent = await Event.create({
         title,

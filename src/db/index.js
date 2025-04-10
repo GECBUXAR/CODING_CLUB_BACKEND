@@ -3,9 +3,9 @@ import { DB_NAME } from "../constants.js";
 
 const connectDB = async () => {
   try {
-    const mongoURI = process.env.MONGODB_URL;
+    const mongodbURI = process.env.MONGODB_URL;
 
-    if (!mongoURI) {
+    if (!mongodbURI) {
       throw new Error(
         "MongoDB connection string is not defined in environment variables"
       );
@@ -20,7 +20,7 @@ const connectDB = async () => {
       socketTimeoutMS: 45000, // Close sockets after 45 seconds of inactivity
     };
 
-    const connectionInstance = await mongoose.connect(mongoURI, options);
+    const connectionInstance = await mongoose.connect(mongodbURI, options);
 
     console.log(
       `\n MongoDB connected successfully! DB HOST: ${connectionInstance.connection.host}`
