@@ -2,6 +2,14 @@ import express from "express";
 import { verifyJWT } from "../middlewares/auth.middleware.js";
 
 import {
+  submitExamAnswers,
+  getUserExamResults,
+  getExamResultsAdmin,
+  evaluateAnswer,
+  generateCertificate,
+} from "../controllers/enhanced-exam.controller.js";
+
+import {
   getAllExams,
   getExamById,
   createExam,
@@ -11,12 +19,7 @@ import {
   addExamQuestion,
   registerForExam,
   getExamParticipants,
-  submitExamAnswers,
-  getUserExamResults,
-  getExamResultsAdmin,
-  evaluateAnswer,
-  generateCertificate
-} from "../controllers/enhanced-exam.controller.js";
+} from "../controllers/exam.controller.js";
 
 import {
   getUserAnswersByEventId,
@@ -56,10 +59,18 @@ router.get("/:examId/results/user/:userId", verifyJWT, getUserExamResults);
 router.get("/:examId/results", verifyJWT, getExamResultsAdmin);
 
 // Evaluate a subjective answer (admin only)
-router.put("/:examId/results/:resultId/answers/:answerId/evaluate", verifyJWT, evaluateAnswer);
+router.put(
+  "/:examId/results/:resultId/answers/:answerId/evaluate",
+  verifyJWT,
+  evaluateAnswer
+);
 
 // Generate certificate for a passed exam
-router.post("/:examId/results/:resultId/certificate", verifyJWT, generateCertificate);
+router.post(
+  "/:examId/results/:resultId/certificate",
+  verifyJWT,
+  generateCertificate
+);
 
 // Get exam responses (user answers) for a specific exam
 router.get("/:id/responses", verifyJWT, (req, res) => {
