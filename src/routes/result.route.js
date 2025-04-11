@@ -1,31 +1,31 @@
-import express from "express";
-import {
-  createResult,
-  getAllResults,
+import { Router } from "express";
+import { 
+  getUserResults,
   getResultById,
-  updateResult,
-  deleteResult,
-  getResultsByEventTitle,
+  getExamLeaderboard,
+  getExamStatistics,
+  getUserPerformance
 } from "../controllers/result.controller.js";
+import { verifyJWT } from "../middlewares/auth.middleware.js";
 
-const router = express.Router();
+const router = Router();
 
-// Get results by event title
-router.post("/by-event", getResultsByEventTitle);
+// Apply authentication middleware to all routes
+router.use(verifyJWT);
 
-// Create new result
-router.post("/", createResult);
+// Get results for a specific user
+router.get("/user/:userId", getUserResults);
 
-// Get all results
-router.get("/", getAllResults);
+// Get a specific result by ID
+router.get("/:resultId", getResultById);
 
-// Get result by ID
-router.get("/:id", getResultById);
+// Get leaderboard for an exam
+router.get("/exam/:examId/leaderboard", getExamLeaderboard);
 
-// Update result
-router.put("/:id", updateResult);
+// Get statistics for all exams (admin only)
+router.get("/statistics/exams", getExamStatistics);
 
-// Delete result
-router.delete("/:id", deleteResult);
+// Get user performance across all exams
+router.get("/user/:userId/performance", getUserPerformance);
 
 export default router;

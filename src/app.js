@@ -73,6 +73,7 @@ import resultRoutes from "./routes/result.route.js";
 import userAnswerRoutes from "./routes/userAnswer.route.js";
 import facultyRoutes from "./routes/faculty.route.js";
 import examRoutes from "./routes/exam.route.js";
+import enhancedExamRoutes from "./routes/enhanced-exam.route.js";
 
 // Request logging middleware for debugging
 app.use((req, res, next) => {
@@ -93,6 +94,7 @@ app.use("/api/v1/results", resultRoutes);
 app.use("/api/v1/user-answers", userAnswerRoutes);
 app.use("/api/v1/faculty", facultyRoutes);
 app.use("/api/v1/exams", examRoutes);
+app.use("/api/v1/enhanced-exams", enhancedExamRoutes);
 
 // Add a route handler for .well-known/version endpoint
 app.get("/.well-known/version", (req, res) => {
