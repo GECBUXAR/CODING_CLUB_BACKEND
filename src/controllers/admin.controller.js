@@ -5,27 +5,9 @@ import User from "../models/user.model.js";
 import asyncHandler from "../utils/asyncHandler.js";
 import ApiRespons from "../utils/ApiRespons.js";
 import ApiError from "../utils/ApiError.js";
-import bcrypt from "bcryptjs";
+import { generateTokens, invalidateTokens } from "../utils/tokenManager.js";
 
-const generateAccessRefreshToken = async (adminID) => {
-  try {
-    const admin = await Admin.findById(adminID);
-    // Use the admin model's methods for token generation
-    const accessToken = await admin.generateAccessToken();
-    const refreshToken = await admin.generateRefreshToken();
-
-    admin.refreshToken = refreshToken;
-    await admin.save({ validateBeforeSave: false });
-
-    return { accessToken, refreshToken };
-  } catch (error) {
-    console.error("Token generation error:", error);
-    throw new ApiError(
-      500,
-      "Something went wrong while generating RefreshToken and AccessToken"
-    );
-  }
-};
+// This function is now replaced by the tokenManager.js utility
 
 const createAdmin = asyncHandler(async (req, res) => {
   const { name, email, password, secretKey } = req.body;
@@ -66,29 +48,32 @@ const createAdmin = asyncHandler(async (req, res) => {
 const loginAdmin = asyncHandler(async (req, res) => {
   const { email, password, secretKey } = req.body;
 
+  // Input validation
   if (!email || !password || !secretKey) {
-    throw new ApiError(400, "All fields are required.");
+    throw new ApiError(400, "All fields are required");
   }
 
+  // Verify admin secret key
   if (secretKey !== process.env.ADMINSECRETKEY) {
-    throw new ApiError(403, "Invalid secret key.");
+    throw new ApiError(403, "Invalid secret key");
   }
 
+  // Find the admin
   const admin = await Admin.findOne({ email });
   if (!admin) {
-    throw new ApiError(404, "Admin not found.");
+    throw new ApiError(404, "Admin not found");
   }
 
+  // Verify password
   const isPasswordValid = await admin.comparePassword(password);
-
   if (!isPasswordValid) {
-    throw new ApiError(401, "Invalid Password");
+    throw new ApiError(401, "Invalid password");
   }
 
-  const { accessToken, refreshToken } = await generateAccessRefreshToken(
-    admin._id
-  );
+  // Generate tokens with enhanced security
+  const { accessToken, refreshToken, tokenId } = await generateTokens(admin);
 
+  // Get admin data without sensitive information
   const loggedInAdmin = await Admin.findById(admin._id).select(
     "-password -refreshToken"
   );
@@ -96,14 +81,23 @@ const loginAdmin = asyncHandler(async (req, res) => {
   // Ensure the role is set to admin
   loggedInAdmin.role = "admin";
 
+  // Configure cookie options
   const options = {
     httpOnly: true,
     secure: true,
     sameSite: "none",
-    partitioned: true,
     path: "/",
     maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
   };
+
+  // Add security headers
+  res.setHeader("X-Content-Type-Options", "nosniff");
+  res.setHeader("X-Frame-Options", "DENY");
+  res.setHeader("X-XSS-Protection", "1; mode=block");
+  res.setHeader(
+    "Cache-Control",
+    "private, no-cache, no-store, must-revalidate"
+  );
 
   return res
     .status(200)
@@ -112,38 +106,41 @@ const loginAdmin = asyncHandler(async (req, res) => {
     .json(
       new ApiRespons(
         200,
-        { user: loggedInAdmin, accessToken, refreshToken },
-        "Admin logged In Successfully"
+        {
+          user: loggedInAdmin,
+          accessToken,
+          refreshToken,
+          tokenId, // Include tokenId for potential client-side token management
+        },
+        "Admin logged in successfully"
       )
     );
 });
 
 const logOutAdmin = asyncHandler(async (req, res) => {
-  await Admin.findByIdAndUpdate(
-    req.user._id,
-    {
-      $set: {
-        refreshToken: undefined,
-      },
-    },
-    {
-      new: true,
-    }
-  );
+  // Invalidate tokens using the token manager
+  await invalidateTokens(req.user._id, "admin");
 
+  // Configure cookie options
   const options = {
     httpOnly: true,
     secure: true,
     sameSite: "none",
-    partitioned: true,
     path: "/",
   };
+
+  // Add security headers
+  res.setHeader("X-Content-Type-Options", "nosniff");
+  res.setHeader(
+    "Cache-Control",
+    "no-store, no-cache, must-revalidate, private"
+  );
 
   return res
     .status(200)
     .clearCookie("accessToken", options)
     .clearCookie("refreshToken", options)
-    .json(new ApiRespons(200, {}, "User logged out Successfully"));
+    .json(new ApiRespons(200, {}, "Admin logged out successfully"));
 });
 
 const createEvent = asyncHandler(async (req, res) => {

@@ -1,5 +1,4 @@
 import mongoose, { Schema } from "mongoose";
-import jwt from "jsonwebtoken";
 import bcrypt from "bcryptjs";
 
 const adminSchema = new Schema(
@@ -24,31 +23,6 @@ adminSchema.methods.comparePassword = async function (password) {
   return await bcrypt.compare(password, this.password);
 };
 
-adminSchema.methods.generateAccessToken = async function () {
-  return jwt.sign(
-    {
-      id: this._id,
-      name: this.name,
-      email: this.email,
-      role: this.role,
-    },
-    process.env.ACCESS_TOKEN_SECRET,
-    {
-      expiresIn: process.env.ACCESS_TOKEN_EXPIRY,
-    }
-  );
-};
-
-adminSchema.methods.generateRefreshToken = async function () {
-  return jwt.sign(
-    {
-      id: this._id,
-    },
-    process.env.REFRESH_TOKEN_SECRET,
-    {
-      expiresIn: process.env.REFRESH_TOKEN_EXPIRY,
-    }
-  );
-};
+// Token generation methods have been moved to the centralized tokenManager.js utility
 
 export const Admin = mongoose.model("Admin", adminSchema);

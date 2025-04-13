@@ -1,5 +1,4 @@
 import mongoose, { Schema } from "mongoose";
-import jwt from "jsonwebtoken";
 import bcrypt from "bcryptjs";
 
 const userSchema = new Schema(
@@ -62,32 +61,7 @@ userSchema.methods.comparePassword = async function (password) {
   return await bcrypt.compare(password, this.password);
 };
 
-userSchema.methods.generateAccessToken = async function () {
-  return jwt.sign(
-    {
-      id: this._id,
-      name: this.name,
-      email: this.email,
-      role: this.role,
-    },
-    process.env.ACCESS_TOKEN_SECRET,
-    {
-      expiresIn: process.env.ACCESS_TOKEN_EXPIRY,
-    }
-  );
-};
-
-userSchema.methods.generateRefreshToken = async function () {
-  return jwt.sign(
-    {
-      id: this._id,
-    },
-    process.env.REFRESH_TOKEN_SECRET,
-    {
-      expiresIn: process.env.REFRESH_TOKEN_EXPIRY,
-    }
-  );
-};
+// Token generation methods have been moved to the centralized tokenManager.js utility
 
 const User = mongoose.model("User", userSchema);
 export default User;

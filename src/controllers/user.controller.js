@@ -2,31 +2,13 @@ import User from "../models/user.model.js";
 import asyncHandler from "../utils/asyncHandler.js";
 import ApiRespons from "../utils/ApiRespons.js";
 import ApiError from "../utils/ApiError.js";
-import bcrypt from "bcryptjs";
-import jwt from "jsonwebtoken";
+import {
+  generateTokens,
+  verifyToken,
+  invalidateTokens,
+} from "../utils/tokenManager.js";
 
-const generateAccessRefreshToken = async (userID) => {
-  try {
-    const user = await User.findById(userID);
-    if (!user) {
-      throw new ApiError(404, "User not found");
-    }
-
-    const accessToken = await user.generateAccessToken();
-    const refreshToken = await user.generateRefreshToken();
-
-    user.refreshToken = refreshToken;
-    await user.save({ validateBeforeSave: false });
-
-    return { accessToken, refreshToken };
-  } catch (error) {
-    console.error("Token generation error:", error);
-    throw new ApiError(
-      500,
-      "Something went wrong while generating RefreshToken and AccessToken"
-    );
-  }
-};
+// This function is now replaced by the tokenManager.js utility
 
 export const createUser = asyncHandler(async (req, res) => {
   const {
@@ -90,25 +72,28 @@ export const createUser = asyncHandler(async (req, res) => {
 
 export const loginUser = asyncHandler(async (req, res) => {
   const { email, password } = req.body;
-  // console.log(req.body);
 
+  // Input validation
+  if (!email || !password) {
+    throw new ApiError(400, "Email and password are required");
+  }
+
+  // Find the user
   const user = await User.findOne({ email });
   if (!user) {
-    // return res.status(401).json({ message: "Invalid email Id " });
-    throw new ApiError(404, "User not Found");
+    throw new ApiError(404, "User not found");
   }
 
-  // const isPasswordValid = await bcrypt.compare(password, user.password);
+  // Verify password
   const isPasswordValid = await user.comparePassword(password);
-
   if (!isPasswordValid) {
-    throw new ApiError(401, "Invalid Password");
+    throw new ApiError(401, "Invalid password");
   }
 
-  const { accessToken, refreshToken } = await generateAccessRefreshToken(
-    user._id
-  );
+  // Generate tokens with enhanced security
+  const { accessToken, refreshToken, tokenId } = await generateTokens(user);
 
+  // Get user data without sensitive information
   const loggedInUser = await User.findById(user._id).select(
     "-password -refreshToken"
   );
@@ -123,6 +108,11 @@ export const loginUser = asyncHandler(async (req, res) => {
     maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
   };
 
+  // Add security headers
+  res.setHeader("X-Content-Type-Options", "nosniff");
+  res.setHeader("X-Frame-Options", "DENY");
+  res.setHeader("X-XSS-Protection", "1; mode=block");
+
   return res
     .status(200)
     .cookie("accessToken", accessToken, options)
@@ -130,24 +120,20 @@ export const loginUser = asyncHandler(async (req, res) => {
     .json(
       new ApiRespons(
         200,
-        { user: loggedInUser, accessToken, refreshToken },
-        "User logged In Successfully"
+        {
+          user: loggedInUser,
+          accessToken,
+          refreshToken,
+          tokenId, // Include tokenId for potential client-side token management
+        },
+        "User logged in successfully"
       )
     );
 });
 
 export const logOutUser = asyncHandler(async (req, res) => {
-  await User.findByIdAndUpdate(
-    req.user._id,
-    {
-      $set: {
-        refreshToken: undefined,
-      },
-    },
-    {
-      new: true,
-    }
-  );
+  // Invalidate tokens using the token manager
+  await invalidateTokens(req.user._id, req.user.role || "user");
 
   // Configure cookie options based on environment
   const isProduction = process.env.NODE_ENV === "production";
@@ -158,39 +144,36 @@ export const logOutUser = asyncHandler(async (req, res) => {
     path: "/",
   };
 
+  // Add security headers
+  res.setHeader("X-Content-Type-Options", "nosniff");
+  res.setHeader(
+    "Cache-Control",
+    "no-store, no-cache, must-revalidate, private"
+  );
+
   return res
     .status(200)
     .clearCookie("accessToken", options)
     .clearCookie("refreshToken", options)
-    .json(new ApiRespons(200, {}, "User logged out Successfully"));
+    .json(new ApiRespons(200, {}, "User logged out successfully"));
 });
 
 // New endpoint specifically for getting the user profile
 export const getUserProfile = asyncHandler(async (req, res) => {
   try {
-    // Get token from cookie instead of authorization header
-    const token = req.cookies?.accessToken;
-
-    if (!token) {
+    // User is already authenticated via verifyJWT middleware
+    // Just return the user data from req.user
+    if (!req.user) {
       throw new ApiError(401, "Authentication required. Please login.");
-    }
-
-    // Verify the token
-    const decoded = jwt.verify(token, process.env.ACCESS_TOKEN_SECRET);
-
-    // Get user data without sensitive information
-    const user = await User.findById(decoded.id).select(
-      "-password -refreshToken"
-    );
-
-    if (!user) {
-      throw new ApiError(404, "User not found");
     }
 
     return res
       .status(200)
-      .json(new ApiRespons(200, user, "User profile fetched successfully"));
+      .json(new ApiRespons(200, req.user, "User profile fetched successfully"));
   } catch (error) {
+    if (error instanceof ApiError) {
+      throw error;
+    }
     throw new ApiError(401, "Authentication required. Please login.");
   }
 });
@@ -220,14 +203,27 @@ export const getUserByToken = asyncHandler(async (req, res) => {
   try {
     const { token } = req.body;
     if (!token) {
-      throw new ApiError(404, "token not found");
+      throw new ApiError(404, "Token not found");
     }
-    const decode = jwt.verify(token, process.env.ACCESS_TOKEN_SECRET);
-    const user = await User.findById(decode.id).select("-password");
 
-    return res.status(200).json(new ApiRespons(200, user));
+    // Use the enhanced token verification
+    const decoded = verifyToken(token, process.env.ACCESS_TOKEN_SECRET);
+    const user = await User.findById(decoded.id).select(
+      "-password -refreshToken"
+    );
+
+    if (!user) {
+      throw new ApiError(404, "User not found");
+    }
+
+    return res
+      .status(200)
+      .json(new ApiRespons(200, user, "User retrieved successfully"));
   } catch (error) {
-    throw new ApiError(401, error);
+    if (error instanceof ApiError) {
+      throw error;
+    }
+    throw new ApiError(401, "Invalid or expired token");
   }
 });
 

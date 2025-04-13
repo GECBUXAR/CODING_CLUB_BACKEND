@@ -11,7 +11,7 @@ app.use((req, res, next) => {
   next();
 });
 
-// CORS configuration
+// Enhanced CORS configuration with better security
 const allowedOriginsEnv = process.env.CORS_ORIGIN || "";
 const allowedOrigins = [
   "http://localhost:5173",
@@ -21,43 +21,76 @@ const allowedOrigins = [
   ...allowedOriginsEnv.split(",").filter((origin) => origin.trim()),
 ];
 
-console.log("Allowed CORS origins:", allowedOrigins);
+// Log allowed origins in non-production environments only
+if (process.env.NODE_ENV !== "production") {
+  console.log("Allowed CORS origins:", allowedOrigins);
+}
 
-const corsOptions = {
-  origin: (origin, callback) => {
-    // Allow requests with no origin (like mobile apps, curl, etc.)
-    if (!origin) return callback(null, true);
+// Create a CORS middleware factory function
+const createCorsMiddleware = (options = {}) => {
+  const defaultOptions = {
+    origin: (origin, callback) => {
+      // In development, allow requests with no origin (like Postman)
+      if (!origin && process.env.NODE_ENV !== "production") {
+        return callback(null, true);
+      }
 
-    if (
-      allowedOrigins.includes(origin) ||
-      process.env.NODE_ENV !== "production"
-    ) {
-      callback(null, true);
-    } else {
-      console.warn(`Origin ${origin} not allowed by CORS policy`);
-      callback(new Error("Not allowed by CORS"));
-    }
-  },
-  methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
-  allowedHeaders: [
-    "Content-Type",
-    "Authorization",
-    "X-Requested-With",
-    "Accept",
-    "Origin",
-  ],
-  exposedHeaders: ["Set-Cookie"],
-  credentials: true,
-  optionsSuccessStatus: 200,
-  preflightContinue: false,
-  maxAge: 86400, // 24 hours
+      // In production, only allow specific origins
+      if (allowedOrigins.includes(origin)) {
+        callback(null, true);
+      } else {
+        console.warn(`Origin ${origin} blocked by CORS policy`);
+        callback(new Error("Not allowed by CORS"));
+      }
+    },
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
+    allowedHeaders: [
+      "Content-Type",
+      "Authorization",
+      "X-Requested-With",
+      "Accept",
+      "Origin",
+    ],
+    exposedHeaders: ["Set-Cookie"],
+    credentials: true,
+    optionsSuccessStatus: 200,
+    preflightContinue: false,
+    maxAge: 86400, // 24 hours
+  };
+
+  // Merge default options with provided options
+  const mergedOptions = { ...defaultOptions, ...options };
+
+  // Create and return the CORS middleware
+  return cors(mergedOptions);
 };
 
+// Create the main CORS middleware
+const corsMiddleware = createCorsMiddleware();
+
 // Apply CORS middleware
-app.use(cors(corsOptions));
+app.use(corsMiddleware);
 
 // Handle preflight requests explicitly
-app.options("*", cors(corsOptions));
+app.options("*", corsMiddleware);
+
+// Add security headers to all responses
+app.use((req, res, next) => {
+  // Basic security headers
+  res.setHeader("X-Content-Type-Options", "nosniff");
+  res.setHeader("X-Frame-Options", "DENY");
+  res.setHeader("X-XSS-Protection", "1; mode=block");
+
+  // Strict Transport Security in production
+  if (process.env.NODE_ENV === "production") {
+    res.setHeader(
+      "Strict-Transport-Security",
+      "max-age=31536000; includeSubDomains"
+    );
+  }
+
+  next();
+});
 
 // Parse JSON request body (reasonable limit for security)
 app.use(express.json({ limit: "2mb" }));
@@ -104,45 +137,74 @@ app.get("/.well-known/version", (req, res) => {
   });
 });
 
-// Global error handler middleware - improved with more detailed error info
+// Global error handler middleware with enhanced security and debugging
 app.use((err, req, res, next) => {
-  console.error("Error:", err.stack);
-
-  // Set CORS headers even for errors
-  const origin = req.headers.origin;
-  if (allowedOrigins.includes(origin)) {
-    res.header("Access-Control-Allow-Origin", origin);
-    res.header("Access-Control-Allow-Credentials", "true");
-    res.header("Access-Control-Allow-Methods", corsOptions.methods.join(","));
-    res.header(
-      "Access-Control-Allow-Headers",
-      corsOptions.allowedHeaders.join(",")
-    );
+  // Log error details (but sanitize sensitive information)
+  console.error("Error:", err.message);
+  if (process.env.NODE_ENV !== "production") {
+    console.error("Stack:", err.stack);
   }
 
-  // Enhanced error response with additional details for debugging
+  // Determine if this is a CORS error
+  const isCorsError = err.message?.includes("CORS");
+
+  // For CORS errors, provide a more helpful message
+  if (isCorsError) {
+    return res.status(403).json({
+      status: "error",
+      code: "CORS_ERROR",
+      message: "Cross-Origin Request Blocked",
+      detail:
+        "The server rejected this request because it came from an unauthorized origin.",
+      allowedOrigins:
+        process.env.NODE_ENV === "production" ? undefined : allowedOrigins,
+      requestOrigin: req.headers.origin || "unknown",
+    });
+  }
+
+  // Enhanced error response with appropriate details based on environment
   res.status(err.status || 500).json({
     status: "error",
+    code: err.code || "SERVER_ERROR",
     message: err.message || "Internal server error",
     path: req.path,
     method: req.method,
-    ...(process.env.NODE_ENV === "development" && {
+    // Only include detailed debugging info in development
+    ...(process.env.NODE_ENV !== "production" && {
       stack: err.stack,
-      body: req.body,
+      // Sanitize request body to avoid logging sensitive data
+      body: req.body ? sanitizeRequestBody(req.body) : undefined,
     }),
   });
 });
 
-// 404 handler
-app.use((req, res) => {
-  const origin = req.headers.origin;
-  if (allowedOrigins.includes(origin)) {
-    res.header("Access-Control-Allow-Origin", origin);
-    res.header("Access-Control-Allow-Credentials", "true");
+// Helper function to sanitize request body for logging
+function sanitizeRequestBody(body) {
+  // Create a shallow copy of the body
+  const sanitized = { ...body };
+
+  // Remove sensitive fields
+  const sensitiveFields = [
+    "password",
+    "token",
+    "refreshToken",
+    "accessToken",
+    "secretKey",
+  ];
+  for (const field of sensitiveFields) {
+    if (sanitized[field]) {
+      sanitized[field] = "[REDACTED]";
+    }
   }
 
+  return sanitized;
+}
+
+// 404 handler with consistent error format
+app.use((req, res) => {
   res.status(404).json({
     status: "error",
+    code: "NOT_FOUND",
     message: `Route not found: ${req.method} ${req.path}`,
   });
 });
